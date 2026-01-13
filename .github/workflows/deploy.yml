@@ -1,0 +1,89 @@
+name: Build & Version & Push Image (GHCR)
+
+on:
+  push:
+    branches: [ deploy ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate version tag (pyproject + git)
+        id: version
+        run: |
+          set -euo pipefail
+          GIT_SHA=$(git rev-parse --short=7 HEAD)
+          if [ -f pyproject.toml ]; then
+            PYPROJECT_VERSION=$(grep '^version' pyproject.toml | cut -d '"' -f2)
+            VERSION_TAG="${PYPROJECT_VERSION}-${GIT_SHA}"
+          else
+            VERSION_TAG="${GIT_SHA}"
+          fi
+          echo "version_tag=${VERSION_TAG}" >> "$GITHUB_OUTPUT"
+          echo "Generated version: ${VERSION_TAG}"
+
+      - name: Set image name and repo name
+        run: |
+          FULL_REPO_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE_NAME=ghcr.io/${FULL_REPO_NAME}" >> $GITHUB_ENV
+          REPO_ONLY=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}' | tr '[:upper:]' '[:lower:]')
+          echo "REPO_NAME=${REPO_ONLY}" >> $GITHUB_ENV
+
+      - name: Build & Push
+        env:
+          FRONTEND_BASE_URL: ${{ secrets.FRONTEND_BASE_URL }}
+        run: |
+          set -euo pipefail
+          VERSION_TAG="${{ steps.version.outputs.version_tag }}"
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --target backend \
+            -t "${IMAGE_NAME}-backend:${VERSION_TAG}" \
+            -t "${IMAGE_NAME}-backend:latest" \
+            --push .
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --target frontend \
+            --build-arg VITE_API_BASE_URL="${FRONTEND_BASE_URL}" \
+            -t "${IMAGE_NAME}-frontend:${VERSION_TAG}" \
+            -t "${IMAGE_NAME}-frontend:latest" \
+            --push .
+
+      - name: Deploy on K8s
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            REPO_NAME="${{ env.REPO_NAME }}"
+            IMAGE_NAME="${{ env.IMAGE_NAME }}"
+            VERSION_TAG="${{ steps.version.outputs.version_tag }}"
+            cd "/home/ubuntu/deploy/${REPO_NAME}/infra/k8s/application"
+            echo "Deploying version: ${VERSION_TAG}"
+            git checkout 04-backend.yaml
+            git checkout 05-frontend.yaml
+            sed -i "s|image: ${IMAGE_NAME}-backend:.*|image: ${IMAGE_NAME}-backend:${VERSION_TAG}|g" 04-backend.yaml
+            sed -i "s|image: ${IMAGE_NAME}-frontend:.*|image: ${IMAGE_NAME}-frontend:${VERSION_TAG}|g" 05-frontend.yaml
+            kubectl apply -f 04-backend.yaml
+            kubectl apply -f 05-frontend.yaml
+            git checkout 04-backend.yaml
+            git checkout 05-frontend.yaml
+            echo "Deployment triggered successfully."
