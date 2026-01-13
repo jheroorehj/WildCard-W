@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wildcard-frontend
+  namespace: wildcard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wildcard-frontend
+  template:
+    metadata:
+      labels:
+        app: wildcard-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/jheroorehj/wildcard-frontend:latest
+          ports:
+            - containerPort: 80
