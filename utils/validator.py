@@ -158,12 +158,87 @@ def validate_node7(data: Dict[str, Any]) -> bool:
 
 
 def validate_node8(data: Dict[str, Any]) -> bool:
-    """
-    Node8 출력 JSON 최소 스키마 검증
-    """
-    from N8_Concept_Explainer.schema import (
-        ALLOWED_UNCERTAINTY as ALLOWED_CONCEPT_UNCERTAINTY,
-    )
+    ""
+    Node8 JSON schema validator (loss analyst)
+    ""
+    loss_cause = data.get("loss_cause_analysis")
+    if not isinstance(loss_cause, dict):
+        return False
+
+    for key in ("loss_check", "one_line_summary", "detailed_explanation"):
+        if not isinstance(loss_cause.get(key), str):
+            return False
+
+    root_causes = loss_cause.get("root_causes")
+    if not isinstance(root_causes, list):
+        return False
+    if any(not isinstance(item, str) for item in root_causes):
+        return False
+
+    market_context = data.get("market_context_analysis")
+    if not isinstance(market_context, dict):
+        return False
+
+    if not isinstance(market_context.get("market_situation_analysis"), str):
+        return False
+
+    news_at_loss = market_context.get("news_at_loss_time")
+    if not isinstance(news_at_loss, list):
+        return False
+    if any(not isinstance(item, str) for item in news_at_loss):
+        return False
+
+    related_news = market_context.get("related_news")
+    if not isinstance(related_news, list):
+        return False
+    if any(not isinstance(item, str) for item in related_news):
+        return False
+
+    n9_input = data.get("n9_input")
+    if not isinstance(n9_input, dict):
+        return False
+
+    for key in ("investment_reason", "loss_cause_summary"):
+        if not isinstance(n9_input.get(key), str):
+            return False
+
+    loss_details = n9_input.get("loss_cause_details")
+    if not isinstance(loss_details, list):
+        return False
+    if any(not isinstance(item, str) for item in loss_details):
+        return False
+
+    objective = n9_input.get("objective_signals")
+    if not isinstance(objective, dict):
+        return False
+
+    for key in ("price_trend", "volatility_level"):
+        if not isinstance(objective.get(key), str):
+            return False
+
+    obj_tech = objective.get("technical_indicators")
+    if not isinstance(obj_tech, list):
+        return False
+    for indicator in obj_tech:
+        if not isinstance(indicator, dict):
+            return False
+        if not isinstance(indicator.get("name"), str):
+            return False
+        if not isinstance(indicator.get("value"), str):
+            return False
+        if not isinstance(indicator.get("interpretation"), str):
+            return False
+
+    obj_news = objective.get("news_facts")
+    if not isinstance(obj_news, list):
+        return False
+    if any(not isinstance(item, str) for item in obj_news):
+        return False
+
+    if not isinstance(n9_input.get("uncertainty_level"), str):
+        return False
+
+    return True
 
     explanation = data.get("concept_explanation")
     if not isinstance(explanation, dict):
