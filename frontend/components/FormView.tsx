@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { InvestmentFormData, StockDetail } from '../types';
-import { DECISION_OPTIONS, TRADE_PATTERNS, TRADE_PERIODS, ICONS } from '../constants';
+import { DECISION_OPTIONS, TRADE_PATTERNS, ICONS } from '../constants';
 import { DateRangePicker } from './DateRangePicker';
 
 interface FormViewProps {
@@ -26,7 +27,6 @@ export const FormView: React.FC<FormViewProps> = ({
   formData,
   stockInput,
   setStockInput,
-  showCustomPeriod,
   handleAnalysis,
   nextStep,
   prevStep,
@@ -35,7 +35,6 @@ export const FormView: React.FC<FormViewProps> = ({
   updateStockDetail,
   toggleStockPattern,
   toggleDecisionBasis,
-  toggleCustomInput,
   isNextDisabled
 }) => {
   const nextButton = (
@@ -47,6 +46,43 @@ export const FormView: React.FC<FormViewProps> = ({
       {step === 3 ? '복기 노트 생성하기' : '다음으로 넘어가기'} {ICONS.ArrowRight}
     </button>
   );
+
+  const parseParts = (val: string = "") => {
+    const parts = val.split(" ~ ");
+    const start = parts[0] || "";
+    const end = parts[1] || "";
+    
+    const getDigits = (s: string) => s.replace(/\D/g, "");
+    const sDigits = getDigits(start);
+    const eDigits = getDigits(end);
+
+    return {
+      sY: sDigits.substring(0, 4),
+      sM: sDigits.substring(4, 6),
+      sD: sDigits.substring(6, 8),
+      eY: eDigits.substring(0, 4),
+      eM: eDigits.substring(4, 6),
+      eD: eDigits.substring(6, 8),
+    };
+  };
+
+  const handleBoxChange = (idx: number, field: string, val: string) => {
+    const digits = val.replace(/\D/g, "");
+    const parts = parseParts(formData.stocks[idx].customPeriod);
+    const newParts = { ...parts, [field]: digits };
+
+    // Construct YYYY 년 MM 월 DD 일 format
+    const formatPart = (y: string, m: string, d: string) => {
+      if (!y && !m && !d) return "";
+      return `${y.padStart(4, '0')} 년 ${m.padStart(2, '0')} 월 ${d.padStart(2, '0')} 일`;
+    };
+
+    const startStr = formatPart(newParts.sY, newParts.sM, newParts.sD);
+    const endStr = formatPart(newParts.eY, newParts.eM, newParts.eD);
+
+    const final = endStr ? `${startStr} ~ ${endStr}` : startStr;
+    updateStockDetail(idx, { customPeriod: final });
+  };
 
   return (
     <div className="h-screen max-w-md mx-auto bg-slate-950 flex flex-col shadow-2xl relative overflow-hidden">
@@ -66,65 +102,110 @@ export const FormView: React.FC<FormViewProps> = ({
       </div>
 
       {step === 2 ? (
-        /* Step 2 Only: Integrated Scroll Layout (Title + Content + Button all scroll together) */
         <div className="flex-1 overflow-y-auto px-8 pb-8 custom-scrollbar relative z-10">
           <div className="step-transition animate-in fade-in slide-in-from-bottom-4 flex flex-col">
             <h1 className="text-2xl font-bold mb-1 leading-tight">종목별 <span className="text-blue-400">거래 상황</span>을<br/>알려주세요.</h1>
             <p className="text-slate-500 text-[11px] mb-6 font-medium">기간을 입력하면 시장 상황과 연동하여 더 좋은 결과를 낼 수 있습니다.</p>
             
             <div className="space-y-4 mb-8">
-              {formData.stocks.map((stock, idx) => (
-                <div key={stock.name} className="bg-slate-900/40 rounded-3xl p-4 border border-slate-800 space-y-4 shadow-sm">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-base font-black text-white">{stock.name}</h3>
-                    <div className="flex bg-slate-800 p-0.5 rounded-lg shrink-0">
-                      <button onClick={() => updateStockDetail(idx, {status: 'holding'})} className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition-all ${stock.status === 'holding' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500'}`}>보유 중</button>
-                      <button onClick={() => updateStockDetail(idx, {status: 'sold'})} className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition-all ${stock.status === 'sold' ? 'bg-slate-700 text-white shadow-lg' : 'text-slate-500'}`}>매도 완료</button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2.5">
+              {formData.stocks.map((stock, idx) => {
+                const parts = parseParts(stock.customPeriod);
+                return (
+                  <div key={stock.name} className="bg-slate-900/40 rounded-3xl p-4 border border-slate-800 space-y-4 shadow-sm">
                     <div className="flex justify-between items-center">
-                      <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">언제 거래했나요? {ICONS.Calendar}</p>
-                      <button onClick={() => toggleCustomInput(idx)} className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase transition-all border ${showCustomPeriod[idx] ? 'bg-blue-600 text-white border-blue-400' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
-                        {ICONS.Edit} 직접 입력
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {TRADE_PERIODS.map(p => (
-                        <button key={p} onClick={() => updateStockDetail(idx, {period: p})} className={`px-2 py-1 rounded-full text-[9px] font-medium border transition-all ${stock.period === p ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'bg-slate-900/50 border-slate-800 text-slate-500'}`}>{p}</button>
-                      ))}
-                    </div>
-                    {showCustomPeriod[idx] && (
-                      <div className="space-y-2">
-                        <input 
-                          type="text" 
-                          placeholder="분석 기간 (예: 2024년 여름 등)" 
-                          className="w-full bg-slate-950/50 border border-slate-700 rounded-xl px-3 py-2 text-[10px] text-white placeholder:text-slate-700 focus:border-blue-500 outline-none" 
-                          value={stock.customPeriod} 
-                          onChange={(e) => updateStockDetail(idx, { customPeriod: e.target.value })} 
-                        />
-                        <DateRangePicker value={stock.customPeriod || ''} onChange={(val) => updateStockDetail(idx, { customPeriod: val })} />
+                      <h3 className="text-base font-black text-white">{stock.name}</h3>
+                      <div className="flex bg-slate-800 p-0.5 rounded-lg shrink-0">
+                        <button onClick={() => updateStockDetail(idx, {status: 'holding'})} className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition-all ${stock.status === 'holding' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500'}`}>보유 중</button>
+                        <button onClick={() => updateStockDetail(idx, {status: 'sold'})} className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition-all ${stock.status === 'sold' ? 'bg-slate-700 text-white shadow-lg' : 'text-slate-500'}`}>매도 완료</button>
                       </div>
-                    )}
-                  </div>
+                    </div>
 
-                  <div className="space-y-2">
-                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">매매 패턴 (중복 가능)</p>
-                    <div className="flex flex-wrap gap-1">
-                      {TRADE_PATTERNS.map(p => (
-                        <button key={p} onClick={() => toggleStockPattern(idx, p)} className={`px-2 py-1 rounded-full text-[9px] font-medium border transition-all ${stock.patterns.includes(p) ? 'bg-emerald-600/20 border-emerald-500 text-emerald-400' : 'bg-slate-900/50 border-slate-800 text-slate-500'}`}>{p}</button>
-                      ))}
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <p className="text-[10px] font-bold text-slate-300 flex items-center gap-1">{ICONS.Calendar} 언제 거래했나요? </p>
+                      </div>
+                      
+                      {/* Segmented Inputs - Realigned to Horizontal */}
+                      <div className="bg-slate-950/30 p-3 rounded-2xl border border-white/5">
+                        <div className="flex items-center justify-between gap-1">
+                          {/* Start Date Column */}
+                          <div className="flex flex-col gap-1.5 flex-1">
+                            <label className="text-[9px] font-bold text-slate-500">시작일</label>
+                            <div className="flex items-center gap-1">
+                              <input 
+                                type="text" maxLength={4} placeholder="0000"
+                                className="w-[38px] bg-slate-900 border border-slate-700 rounded-lg py-1 text-[9px] text-white text-center focus:border-blue-500 outline-none font-mono"
+                                value={parts.sY} onChange={(e) => handleBoxChange(idx, 'sY', e.target.value)}
+                              />
+                              <span className="text-[8px] text-slate-600">년</span>
+                              <input 
+                                type="text" maxLength={2} placeholder="00"
+                                className="w-[24px] bg-slate-900 border border-slate-700 rounded-lg py-1 text-[9px] text-white text-center focus:border-blue-500 outline-none font-mono"
+                                value={parts.sM} onChange={(e) => handleBoxChange(idx, 'sM', e.target.value)}
+                              />
+                              <span className="text-[8px] text-slate-600">월</span>
+                              <input 
+                                type="text" maxLength={2} placeholder="00"
+                                className="w-[24px] bg-slate-900 border border-slate-700 rounded-lg py-1 text-[9px] text-white text-center focus:border-blue-500 outline-none font-mono"
+                                value={parts.sD} onChange={(e) => handleBoxChange(idx, 'sD', e.target.value)}
+                              />
+                              <span className="text-[8px] text-slate-600">일</span>
+                            </div>
+                          </div>
+
+                          <div className="pt-4 px-0.5">
+                            <span className="text-slate-700 font-bold text-xs opacity-50">~</span>
+                          </div>
+
+                          {/* End Date Column */}
+                          <div className="flex flex-col gap-1.5 flex-1">
+                            <label className="text-[9px] font-bold text-slate-500 whitespace-nowrap pl-1"> 종료일 <span className="text-[7px] font-normal opacity-50">(입력하지 않으면 현재 기준)</span></label>
+                            <div className="flex items-center justify-end gap-1">
+                              <input 
+                                type="text" maxLength={4} placeholder="0000"
+                                className="w-[38px] bg-slate-900 border border-slate-700 rounded-lg py-1 text-[9px] text-white text-center focus:border-blue-500 outline-none font-mono"
+                                value={parts.eY} onChange={(e) => handleBoxChange(idx, 'eY', e.target.value)}
+                              />
+                              <span className="text-[8px] text-slate-600">년</span>
+                              <input 
+                                type="text" maxLength={2} placeholder="00"
+                                className="w-[24px] bg-slate-900 border border-slate-700 rounded-lg py-1 text-[9px] text-white text-center focus:border-blue-500 outline-none font-mono"
+                                value={parts.eM} onChange={(e) => handleBoxChange(idx, 'eM', e.target.value)}
+                              />
+                              <span className="text-[8px] text-slate-600">월</span>
+                              <input 
+                                type="text" maxLength={2} placeholder="00"
+                                className="w-[24px] bg-slate-900 border border-slate-700 rounded-lg py-1 text-[9px] text-white text-center focus:border-blue-500 outline-none font-mono"
+                                value={parts.eD} onChange={(e) => handleBoxChange(idx, 'eD', e.target.value)}
+                              />
+                              <span className="text-[8px] text-slate-600">일</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <DateRangePicker value={stock.customPeriod || ''} onChange={(val) => updateStockDetail(idx, { customPeriod: val })} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest flex items-center gap-1 whitespace-nowrap">
+                        {ICONS.Pattern}
+                        매매 패턴 (중복 가능)
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {TRADE_PATTERNS.map(p => (
+                          <button key={p} onClick={() => toggleStockPattern(idx, p)} className={`px-2 py-1 rounded-full text-[9px] font-medium border transition-all ${stock.patterns.includes(p) ? 'bg-emerald-600/20 border-emerald-500 text-emerald-400' : 'bg-slate-900/50 border-slate-800 text-slate-500'}`}>{p}</button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             {nextButton}
           </div>
         </div>
       ) : (
-        /* Step 1 and 3: Standard Layout (Fixed Button at bottom) */
         <>
           <div className="flex-1 flex flex-col px-8 overflow-hidden relative z-10">
             {step === 1 && (
@@ -139,7 +220,6 @@ export const FormView: React.FC<FormViewProps> = ({
                   </div>
                 </div>
 
-                {/* Dotted Separator 복구 */}
                 <div className="my-2 border-t-2 border-dotted border-slate-800/60 shrink-0"></div>
 
                 <div className="flex-1 overflow-y-auto space-y-2 mb-4 custom-scrollbar">
@@ -166,7 +246,6 @@ export const FormView: React.FC<FormViewProps> = ({
               </div>
             )}
           </div>
-          {/* Fixed Footer for Step 1 and 3 */}
           <div className="p-8 pt-2 shrink-0 relative z-20">
             {nextButton}
           </div>
