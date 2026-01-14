@@ -158,9 +158,9 @@ def validate_node7(data: Dict[str, Any]) -> bool:
 
 
 def validate_node8(data: Dict[str, Any]) -> bool:
-    ""
+    """
     Node8 JSON schema validator (loss analyst)
-    ""
+    """
     loss_cause = data.get("loss_cause_analysis")
     if not isinstance(loss_cause, dict):
         return False
@@ -236,31 +236,6 @@ def validate_node8(data: Dict[str, Any]) -> bool:
         return False
 
     if not isinstance(n9_input.get("uncertainty_level"), str):
-        return False
-
-    return True
-
-    explanation = data.get("concept_explanation")
-    if not isinstance(explanation, dict):
-        return False
-
-    for key in ("term", "short_definition", "beginner_explanation"):
-        if not isinstance(explanation.get(key), str):
-            return False
-
-    examples = explanation.get("examples")
-    if not isinstance(examples, list):
-        return False
-    if any(not isinstance(item, str) for item in examples):
-        return False
-
-    related_terms = explanation.get("related_terms")
-    if not isinstance(related_terms, list):
-        return False
-    if any(not isinstance(item, str) for item in related_terms):
-        return False
-
-    if explanation.get("uncertainty_level") not in ALLOWED_CONCEPT_UNCERTAINTY:
         return False
 
     return True
