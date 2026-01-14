@@ -31,16 +31,10 @@ export const analyzeInvestmentLoss = async (
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-<<<<<<< Updated upstream
       layer1_stock: data.stockName,
       layer2_buy_date: data.buyDate,
       layer2_sell_date: data.sellDate,
       position_status: data.positionStatus,
-=======
-      layer1_stock: stockNames,
-      layer2_buy_date: buyDate,
-      layer2_sell_date: sellDate,
->>>>>>> Stashed changes
       layer3_decision_basis: data.decisionBasis.join(", "),
       // Optional: Send full stock details in metadata for future use
       metadata: {

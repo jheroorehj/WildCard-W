@@ -147,14 +147,7 @@ const App: React.FC = () => {
   const [step, setStep] = useState<number>(1);
   const [stockInput, setStockInput] = useState('');
   const [formData, setFormData] = useState<InvestmentFormData>({
-<<<<<<< Updated upstream
-    stockName: '',
-    buyDate: '',
-    sellDate: '',
-    positionStatus: 'holding',
-=======
     stocks: [],
->>>>>>> Stashed changes
     decisionBasis: []
   });
   const [loading, setLoading] = useState<boolean>(false);
@@ -190,18 +183,8 @@ const App: React.FC = () => {
   }, [messages, chatLoading]);
 
   const startAnalysis = () => {
-<<<<<<< Updated upstream
-    setFormData({
-      stockName: '',
-      buyDate: '',
-      sellDate: '',
-      positionStatus: 'holding',
-      decisionBasis: []
-    });
-=======
     setFormData({ stocks: [], decisionBasis: [] });
     setStockInput('');
->>>>>>> Stashed changes
     setStep(1);
     setShowCustomPeriod({});
     setView('form');
@@ -530,65 +513,6 @@ const App: React.FC = () => {
             </div>
             <span className="text-slate-500 font-mono text-xs">{step}/3</span>
           </div>
-<<<<<<< Updated upstream
-          <div className="flex-1 overflow-hidden">
-            {step === 1 && (
-              <div className="step-transition animate-in fade-in slide-in-from-bottom-4">
-                <h1 className="text-3xl font-bold mb-8 leading-tight">손실이 발생한 종목은<br/><span className="text-blue-400">무엇입니까?</span></h1>
-                <div className="relative group">
-                  <input type="text" autoFocus placeholder="예: 삼성전자, 테슬라, 비트코인 등" className="w-full bg-slate-900 border-b-2 border-slate-800 p-4 text-xl focus:border-blue-500 outline-none transition-colors rounded-t-lg text-white" value={formData.stockName} onChange={e => setFormData({...formData, stockName: e.target.value})} />
-                </div>
-              </div>
-            )}
-            {step === 2 && (
-              <div className="step-transition animate-in fade-in slide-in-from-bottom-4">
-                <h1 className="text-3xl font-bold mb-8 leading-tight">언제 <span className="text-blue-400">매매</span>하셨나요?</h1>
-                <div className="space-y-8">
-                  <div className="group">
-                    <label className="text-xs font-bold text-slate-500 mb-2 block uppercase tracking-widest">?? ??</label>
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, positionStatus: 'holding' })}
-                        className={`flex-1 rounded-2xl border p-4 text-sm font-bold transition-all ${
-                          formData.positionStatus === 'holding'
-                            ? 'bg-emerald-600 border-emerald-400 text-white shadow-lg shadow-emerald-900/20'
-                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
-                        }`}
-                      >
-                        ?? ?
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, positionStatus: 'sold' })}
-                        className={`flex-1 rounded-2xl border p-4 text-sm font-bold transition-all ${
-                          formData.positionStatus === 'sold'
-                            ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-900/30'
-                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
-                        }`}
-                      >
-                        ?? ??
-                      </button>
-                    </div>
-                  </div>
-                  <div className="group">
-                    <label className="text-xs font-bold text-slate-500 mb-2 block uppercase tracking-widest">매수 시점</label>
-                    <input type="date" className="w-full bg-slate-900 border-b-2 border-slate-800 p-4 text-lg focus:border-blue-500 outline-none rounded-t-lg text-white appearance-none" value={formData.buyDate} onChange={e => setFormData({...formData, buyDate: e.target.value})} />
-                  </div>
-                  <div className="group">
-                    <label className="text-xs font-bold text-slate-500 mb-2 block uppercase tracking-widest">매도 시점 (혹은 현재)</label>
-                    <input type="date" className="w-full bg-slate-900 border-b-2 border-slate-800 p-4 text-lg focus:border-blue-500 outline-none rounded-t-lg text-white appearance-none" value={formData.sellDate} onChange={e => setFormData({...formData, sellDate: e.target.value})} />
-                  </div>
-                </div>
-              </div>
-            )}
-            {step === 3 && (
-              <div className="step-transition animate-in fade-in slide-in-from-bottom-4 flex flex-col h-full">
-                <h1 className="text-3xl font-bold mb-8 leading-tight shrink-0">매수 전 <span className="text-blue-400">무엇을 보고</span><br/>결정했는지 기억하시나요?</h1>
-                <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-3 scroll-smooth">
-                  {DECISION_OPTIONS.map(option => (
-                    <button key={option} onClick={() => toggleDecision(option)} className={`w-full p-4 rounded-2xl text-left transition-all border ${formData.decisionBasis.includes(option) ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-900/30 scale-[1.01]' : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'}`}>
-=======
         </div>
 
         {step === 2 ? (
@@ -610,203 +534,15 @@ const App: React.FC = () => {
                     </div>
 
                     <div className="space-y-2.5">
->>>>>>> Stashed changes
                       <div className="flex justify-between items-center">
                         <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">언제 거래했나요? {ICONS.Calendar}</p>
                         <button onClick={() => toggleCustomInput(idx)} className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase transition-all border ${showCustomPeriod[idx] ? 'bg-blue-600 text-white border-blue-400' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
                           {ICONS.Edit} 직접 입력
                         </button>
                       </div>
-<<<<<<< Updated upstream
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="mt-8 space-y-4 shrink-0">
-            <button onClick={step === 3 ? handleAnalysis : nextStep} disabled={(step === 1 && !formData.stockName) || (step === 2 && (!formData.buyDate || (formData.positionStatus === 'sold' && !formData.sellDate))) || (step === 3 && formData.decisionBasis.length === 0)} className="w-full bg-blue-600 disabled:bg-slate-800 disabled:opacity-50 text-white p-5 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xl shadow-blue-900/20">{step === 3 ? 'AI 분석 리포트 생성' : '다음으로 넘어가기'} {ICONS.ArrowRight}</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // --- ANALYSIS REPORT (NOTE FORMAT) ---
-  return (
-    <div className="h-screen max-w-md mx-auto bg-slate-950 flex flex-col shadow-2xl relative overflow-hidden">
-      {/* Background Glows */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 blur-[100px] rounded-full -mr-32 -mt-32"></div>
-
-      {/* COMPACT Header */}
-      <header className="px-5 py-4 flex items-center gap-3 shrink-0 bg-slate-950/80 backdrop-blur-md sticky top-0 z-20 border-b border-white/5">
-        <button 
-          onClick={() => setView('home')}
-          className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-xs shadow-lg shadow-blue-600/30 transition-transform active:scale-90"
-        >
-          W
-        </button>
-        <div>
-          <h1 className="text-sm font-bold text-white leading-tight">{formData.stockName} 투자 분석 노트</h1>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></span>
-            <span className="text-[12px] text-emerald-500 font-bold uppercase tracking-widest">실시간 튜터링 활성화</span>
-          </div>
-        </div>
-      </header>
-
-      {/* Report Body (Investment History Note) */}
-      <div 
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto px-5 space-y-4 pt-4 pb-12 scroll-smooth"
-      >
-        {analysis && (
-          <div className="space-y-4">
-            <section className="bg-slate-900/40 border border-white/5 p-5 rounded-3xl shadow-sm animate-in fade-in slide-in-from-bottom-4">
-              <div className="flex items-center justify-between mb-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAnalysis(null);
-                    setMessages([]);
-                    setReportExpanded(true);
-                    setMarketExpanded(true);
-                    setTechExpanded(true);
-                    setShowMarket(true);
-                    setShowTech(true);
-                  }}
-                  className="text-slate-400 hover:text-white text-[20px] font-black"
-                  aria-label="답변 지우기"
-                >
-                  X
-                </button>
-                <h4 className="text-blue-400 text-[20px] font-black uppercase tracking-tight">손실 복기 요약</h4>
-                <button
-                  type="button"
-                  onClick={() => setReportExpanded(prev => !prev)}
-                  className="text-slate-400 hover:text-white text-[20px] font-black"
-                  aria-label="답변 접기/펼치기"
-                >
-                  {reportExpanded ? '-' : '+'}
-                </button>
-              </div>
-              {report ? (
-                <>
-                  <p className="text-slate-200 leading-relaxed text-sm whitespace-pre-wrap">{report.report_title}</p>
-                  {reportExpanded ? (
-                    <p className="mt-2 text-slate-300 leading-relaxed text-xs whitespace-pre-wrap opacity-90">{report.overall_summary}</p>
-                  ) : null}
-                </>
-              ) : (
-                <p className="text-slate-500 text-sm">요약이 없습니다.</p>
-              )}
-            </section>
-
-            {showMarket ? (
-              <section className="bg-slate-900/40 border border-white/5 p-5 rounded-3xl shadow-sm animate-in fade-in slide-in-from-bottom-4 delay-75">
-                <div className="flex items-center justify-between mb-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowMarket(false)}
-                    className="text-slate-400 hover:text-white text-[20px] font-black"
-                    aria-label="시장 상황 숨기기"
-                  >
-                    X
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <div className="text-purple-400 scale-75">{ICONS.Search}</div>
-                    <h4 className="text-purple-400 text-[20px] font-black uppercase tracking-tight">시장 상황</h4>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setMarketExpanded(prev => !prev)}
-                    className="text-slate-400 hover:text-white text-[20px] font-black"
-                    aria-label="시장 상황 접기/펼치기"
-                  >
-                    {marketExpanded ? '-' : '+'}
-                  </button>
-                </div>
-                {report ? (
-                  <div className="space-y-2 text-xs text-slate-300">
-                    <p className="leading-relaxed whitespace-pre-wrap opacity-90">{report.node_summaries.n7.summary}</p>
-                                        {marketExpanded ? (
-                      <div className="space-y-3 text-slate-400">
-                        <div className="space-y-1">
-                          {report.node_summaries.n7.details.map((detail, idx) => (
-                            <div key={idx}>- {detail}</div>
-                          ))}
-                        </div>
-                        {newsItems.length ? (
-                          <div className="space-y-2">
-                            {newsItems.map((item, idx) => (
-                              <div key={idx} className="relative rounded-xl border border-white/5 bg-slate-950/40">
-                                <a
-                                  href={item.link}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="mx-3 my-2 block rounded-lg border border-white/5 bg-slate-950/40 p-3 transition hover:border-emerald-400/40 hover:bg-slate-950/70"
-                                >
-                                  <div className="text-[12px] font-semibold text-slate-200">
-                                    {item.title || `News ${idx + 1}`}
-                                  </div>
-                                  <div className="text-[11px] text-slate-500 mt-0.5">
-                                    {formatNewsDate(item.date)}
-                                  </div>
-                                  {"summary" in item && item.summary ? (
-                                    <p className="text-[12px] text-slate-300 leading-relaxed mt-1 whitespace-pre-wrap">
-                                      {item.summary}
-                                    </p>
-                                  ) : null}
-                                </a>
-                              </div>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
-                ) : (
-                  <p className="text-slate-500 text-xs">시장 요약이 없습니다.</p>
-                )}
-              </section>
-            ) : null}
-
-            {showTech ? (
-              <section className="bg-slate-900/40 border border-white/5 p-5 rounded-3xl shadow-sm animate-in fade-in slide-in-from-bottom-4 delay-75">
-                <div className="flex items-center justify-between mb-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowTech(false)}
-                    className="text-slate-400 hover:text-white text-[20px] font-black"
-                    aria-label="기술적 요약 숨기기"
-                  >
-                    X
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <div className="text-blue-400 scale-75">{ICONS.Lightbulb}</div>
-                    <h4 className="text-blue-400 text-[20px] font-black uppercase tracking-tight">기술적 요약</h4>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setTechExpanded(prev => !prev)}
-                    className="text-slate-400 hover:text-white text-[20px] font-black"
-                    aria-label="기술적 요약 접기/펼치기"
-                  >
-                    {techExpanded ? '-' : '+'}
-                  </button>
-                </div>
-                {report ? (
-                  <div className="space-y-2 text-xs text-slate-300">
-                    <p className="leading-relaxed whitespace-pre-wrap opacity-90">{report.node_summaries.n6.summary}</p>
-                    {techExpanded ? (
-                      <div className="space-y-1 text-slate-400">
-                        {report.node_summaries.n6.details.map((detail, idx) => (
-                          <div key={idx}>- {detail}</div>
-=======
                       <div className="flex flex-wrap gap-1">
                         {TRADE_PERIODS.map(p => (
                           <button key={p} onClick={() => updateStockDetail(idx, {period: p})} className={`px-2 py-1 rounded-full text-[9px] font-medium border transition-all ${stock.period === p ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'bg-slate-900/50 border-slate-800 text-slate-500'}`}>{p}</button>
->>>>>>> Stashed changes
                         ))}
                       </div>
                       {showCustomPeriod[idx] && (
@@ -904,7 +640,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 space-y-4 pt-4 pb-12 scroll-smooth relative z-10">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 space-y-4 pt-4 pb-12 scroll-smooth custom-scrollbar relative z-10">
         {analysis && (
           <div className="space-y-4">
             {/* 손실 원인 분석 */}
