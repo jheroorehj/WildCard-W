@@ -23,6 +23,7 @@ def node1_input_handler(state: Dict[str, Any]) -> Dict[str, Any]:
             }
         }
 
+    # ???? ??? ?? ??? ?? ??
     return normalized
 
 
@@ -48,14 +49,22 @@ def _normalize_payload(state: Dict[str, Any]) -> Dict[str, Any]:
         position_status = ""
 
     return {
+        # 종목명 또는 티커
         "layer1_stock": layer1_stock,
+        # 매수 날짜(YYYY-MM-DD)
         "layer2_buy_date": layer2_buy_date,
+        # 매도 날짜(YYYY-MM-DD)
         "layer2_sell_date": layer2_sell_date,
+        # 의사결정 근거 요약
         "layer3_decision_basis": layer3_decision_basis,
+        # 사용자 메시지(없으면 의사결정 근거 복사)
         "user_message": user_message,
         "trade_period": {
+            # 매수 날짜(통합 기간 정보)
             "buy_date": layer2_buy_date,
+            # 매도 날짜(통합 기간 정보)
             "sell_date": layer2_sell_date,
+            # 보유 상태(holding|sold)
             "position_status": position_status,
         },
     }
