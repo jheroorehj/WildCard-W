@@ -147,10 +147,14 @@ const App: React.FC = () => {
         currentMessages.map(m => ({ role: m.role, content: m.content })),
         text
       );
+      const message = typeof response?.message === 'string' ? response.message : '';
       // 새 메시지는 기본적으로 확장된 상태로 추가
       const newMsgIndex = messages.length + 1;
       setExpandedChat(prev => ({ ...prev, [newMsgIndex]: true }));
-      setMessages(prev => [...prev, { role: 'assistant' as const, content: response }]);
+      setMessages(prev => [
+        ...prev,
+        { role: 'assistant' as const, content: message, raw: response?.raw }
+      ]);
     } catch (error) {
       console.error(error);
     } finally {

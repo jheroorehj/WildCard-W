@@ -35,18 +35,46 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({
 }) => {
   // Solar API data mapping
   const report = analysis?.n10_loss_review_report;
-  const lossAnalysisTitle = report?.node_summaries.n8.summary || '손실 원인 분석';
-  const lossAnalysis = report?.node_summaries.n8.details.join('\n\n') || '';
-  const marketAnalysisTitle = report?.node_summaries.n7.summary || '시장 상황 분석';
-  const marketAnalysis = report?.node_summaries.n7.details.join('\n\n') || '';
-  const patternAnalysisTitle = report?.node_summaries.n6.summary || '투자 패턴 분석';
-  const patternAnalysis = report?.node_summaries.n6.details.join('\n\n') || '';
-  const learningPath = {
-    title: report?.learning_materials.key_takeaways.join(' · ') || '학습 경로',
-    description: '제공된 학습 자료를 바탕으로 개선 방향을 찾아보세요.',
-    actionItems: report?.learning_materials.practice_steps || []
+  const lossCause = analysis?.n8_loss_cause_analysis;
+  const marketContext = analysis?.n8_market_context_analysis;
+  const pattern = analysis?.learning_pattern_analysis;
+  const recommendation = pattern?.learning_recommendation;
+
+  const lossAnalysisTitle =
+    lossCause?.one_line_summary || lossCause?.loss_check || '손실 원인 분석';
+  const lossAnalysisDetails = [
+    ...(lossCause?.root_causes || []),
+    lossCause?.detailed_explanation || ''
+  ].filter(Boolean);
+  const lossAnalysis = lossAnalysisDetails.join('\n\n');
+
+  const marketAnalysisTitle =
+    marketContext?.market_situation_analysis || '시장 상황 분석';
+  const marketAnalysisDetails = [
+    ...(marketContext?.news_at_loss_time || []),
+    ...(marketContext?.related_news || [])
+  ].filter(Boolean);
+  const marketAnalysis = marketAnalysisDetails.join('\n\n');
+
+  const patternAnalysisTitle = pattern?.pattern_summary || '투자 패턴 분석';
+  const patternAnalysisDetails = [
+    ...(pattern?.pattern_strengths || []),
+    ...(pattern?.pattern_weaknesses || [])
+  ].filter(Boolean);
+  const patternAnalysis = patternAnalysisDetails.join('\n\n');
+
+  const learningMaterials = report?.learning_materials || {
+    key_takeaways: recommendation?.recommended_topics || [],
+    recommended_topics: recommendation?.recommended_topics || [],
+    practice_steps: recommendation?.learning_steps || []
   };
-  const behavioralGuide = report?.node_summaries.n9.summary || '현명한 투자 결정을 위해 노력하세요.';
+  const learningPath = {
+    title: learningMaterials.key_takeaways.join(' · ') || '학습 경로',
+    description: '제공된 학습 자료를 바탕으로 개선 방향을 찾아보세요.',
+    actionItems: learningMaterials.practice_steps || []
+  };
+  const behavioralGuide =
+    recommendation?.learning_reason || '현명한 투자 결정을 위해 노력하세요.';
   const suggestedQuestions = [
     '이 패턴을 어떻게 개선할 수 있을까요?',
     '당시 시장 상황을 더 자세히 알려주세요.',
@@ -206,13 +234,42 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({
                     </button>
                   </div>
                   <div className="space-y-2">
-                    {expandedChat[i] && (
-                      <p className="text-[11px] text-slate-300 font-medium leading-relaxed opacity-90 whitespace-pre-wrap animate-in fade-in slide-in-from-top-1 duration-300">
+                    {expandedChat[i] ? (
+                      msg.raw?.learning_pattern_analysis ? (
+                        <div className="text-[11px] text-slate-300 font-medium leading-relaxed opacity-90 whitespace-pre-wrap animate-in fade-in slide-in-from-top-1 duration-300 space-y-2">
+                          <p className="font-semibold">
+                            {msg.raw.learning_pattern_analysis.pattern_summary}
+                          </p>
+                          <div className="space-y-1">
+                            <p className="text-slate-400">강점</p>
+                            {msg.raw.learning_pattern_analysis.pattern_strengths.map((item, idx) => (
+                              <div key={idx}>- {item}</div>
+                            ))}
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-slate-400">약점</p>
+                            {msg.raw.learning_pattern_analysis.pattern_weaknesses.map((item, idx) => (
+                              <div key={idx}>- {item}</div>
+                            ))}
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-slate-400">학습 추천</p>
+                            {msg.raw.learning_pattern_analysis.learning_recommendation.learning_steps.map(
+                              (item, idx) => (
+                                <div key={idx}>- {item}</div>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-slate-300 font-medium leading-relaxed opacity-90 whitespace-pre-wrap animate-in fade-in slide-in-from-top-1 duration-300">
+                          {msg.content}
+                        </p>
+                      )
+                    ) : (
+                      <p className="text-[11px] text-slate-300 font-medium leading-relaxed opacity-90 whitespace-pre-wrap">
                         {msg.content}
                       </p>
-                    )}
-                    {!expandedChat[i] && (
-                      <p className="text-[11px] text-slate-500 italic">내용을 보려면 돋보기 버튼을 클릭하세요.</p>
                     )}
                   </div>
                 </section>

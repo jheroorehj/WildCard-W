@@ -6,7 +6,7 @@ def validate_node3(data: Dict[str, Any]) -> bool:
     Node3 출력 JSON 최소 스키마 검증
     검증 실패 시 False 반환 → fallback 사용
     """
-    from N3_Loss_Analyzer.schema import ALLOWED_FACTOR_TYPES, ALLOWED_UNCERTAINTY
+    allowed_uncertainty = {"low", "medium", "high"}
 
     def _validate_guideline(block: Dict[str, Any]) -> bool:
         if not isinstance(block, dict):
@@ -52,7 +52,7 @@ def validate_node3(data: Dict[str, Any]) -> bool:
     loss_cause_types = n8.get("loss_cause_types")
     if not isinstance(loss_cause_types, list):
         return False
-    if any(item not in ALLOWED_FACTOR_TYPES for item in loss_cause_types):
+    if any(not isinstance(item, str) for item in loss_cause_types):
         return False
     if not _validate_guideline(n8):
         return False
@@ -63,7 +63,7 @@ def validate_node3(data: Dict[str, Any]) -> bool:
     if any(not isinstance(item, str) for item in global_constraints):
         return False
 
-    if data.get("uncertainty_level") not in ALLOWED_UNCERTAINTY:
+    if data.get("uncertainty_level") not in allowed_uncertainty:
         return False
 
     return True
@@ -74,7 +74,7 @@ def validate_node6(data: Dict[str, Any]) -> bool:
     Node6 출력 JSON 최소 스키마 검증
     """
     from N6_Stock_Analyst.schema import ALLOWED_TRENDS
-    from N3_Loss_Analyzer.schema import ALLOWED_UNCERTAINTY
+    allowed_uncertainty = {"low", "medium", "high"}
 
     analysis = data.get("stock_analysis")
     if not isinstance(analysis, dict):
@@ -114,7 +114,7 @@ def validate_node6(data: Dict[str, Any]) -> bool:
     if any(not isinstance(note, str) for note in risk_notes):
         return False
 
-    if analysis.get("uncertainty_level") not in ALLOWED_UNCERTAINTY:
+    if analysis.get("uncertainty_level") not in allowed_uncertainty:
         return False
 
     return True
@@ -124,7 +124,7 @@ def validate_node7(data: Dict[str, Any]) -> bool:
     """
     Node7 ??? JSON ??? ?????????
     """
-    from N3_Loss_Analyzer.schema import ALLOWED_UNCERTAINTY
+    allowed_uncertainty = {"low", "medium", "high"}
 
     context = data.get("news_context")
     if not isinstance(context, dict):
@@ -178,7 +178,7 @@ def validate_node7(data: Dict[str, Any]) -> bool:
         if not isinstance(fact_check.get(key), str):
             return False
 
-    if context.get("uncertainty_level") not in ALLOWED_UNCERTAINTY:
+    if context.get("uncertainty_level") not in allowed_uncertainty:
         return False
 
     return True
@@ -272,7 +272,7 @@ def validate_node9(data: Dict[str, Any]) -> bool:
     """
     Node9 ?? JSON ?? ??? ?? (?? ?? ??)
     """
-    from N3_Loss_Analyzer.schema import ALLOWED_UNCERTAINTY
+    allowed_uncertainty = {"low", "medium", "high"}
 
     analysis = data.get("learning_pattern_analysis")
     if not isinstance(analysis, dict):
@@ -305,7 +305,7 @@ def validate_node9(data: Dict[str, Any]) -> bool:
     if not isinstance(topics, list) or any(not isinstance(item, str) for item in topics):
         return False
 
-    if analysis.get("uncertainty_level") not in ALLOWED_UNCERTAINTY:
+    if analysis.get("uncertainty_level") not in allowed_uncertainty:
         return False
 
     return True

@@ -6,24 +6,11 @@ const API_BASE_URL =
 export const analyzeInvestmentLoss = async (
   data: InvestmentFormData
 ): Promise<AnalysisResult> => {
-  // Transform stocks array to comma-separated string
-  const stockNames = data.stocks.map(s => s.name).join(", ");
-
-  // Calculate overall date range (earliest buy, latest sell)
-  const allDates = data.stocks.flatMap(s => {
-    if (s.period === "직접 입력" && s.customPeriod) {
-      const [start, end] = s.customPeriod.split(" ~ ");
-      return [start, end].filter(Boolean);
-    }
-    return [];
-  });
-
-  const buyDate = allDates.length > 0 ?
-    allDates.reduce((earliest, date) => date < earliest ? date : earliest) :
-    "";
-  const sellDate = allDates.length > 0 ?
-    allDates.reduce((latest, date) => date > latest ? date : latest) :
-    "";
+  const latestStock = data.stocks[data.stocks.length - 1];
+  const [buyDate, sellDate] =
+    latestStock?.period === "직접 입력" && latestStock.customPeriod
+      ? latestStock.customPeriod.split(" ~ ").map(value => value.trim())
+      : ["", ""];
 
   const response = await fetch(`${API_BASE_URL}/v1/analyze`, {
     method: "POST",
@@ -31,10 +18,10 @@ export const analyzeInvestmentLoss = async (
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      layer1_stock: data.stockName,
-      layer2_buy_date: data.buyDate,
-      layer2_sell_date: data.sellDate,
-      position_status: data.positionStatus,
+      layer1_stock: latestStock?.name || "",
+      layer2_buy_date: buyDate || "",
+      layer2_sell_date: sellDate || "",
+      position_status: latestStock?.status || "holding",
       layer3_decision_basis: data.decisionBasis.join(", "),
       // Optional: Send full stock details in metadata for future use
       metadata: {
@@ -69,6 +56,5 @@ export const chatWithAnalyst = async (
     throw new Error(`API error: ${response.statusText}`);
   }
 
-  const result = await response.json();
-  return result.message || "";
+  return response.json();
 };

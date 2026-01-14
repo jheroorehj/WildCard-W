@@ -8,10 +8,7 @@ export interface StockDetail {
 }
 
 export interface InvestmentFormData {
-  stockName: string;
-  buyDate: string;
-  sellDate: string;
-  positionStatus: 'holding' | 'sold';
+  stocks: StockDetail[];
   decisionBasis: string[];
 }
 
@@ -162,10 +159,47 @@ export interface AnalysisResult {
     };
     uncertainty_level: string;
   };
+  n8_loss_cause_analysis?: {
+    loss_check: string;
+    root_causes: string[];
+    one_line_summary: string;
+    detailed_explanation: string;
+  };
+  n8_market_context_analysis?: {
+    news_at_loss_time: string[];
+    market_situation_analysis: string;
+    related_news: string[];
+  };
+  learning_pattern_analysis?: {
+    pattern_summary: string;
+    pattern_strengths: string[];
+    pattern_weaknesses: string[];
+    learning_recommendation: {
+      focus_area: string;
+      learning_reason: string;
+      learning_steps: string[];
+      recommended_topics: string[];
+    };
+    uncertainty_level: string;
+  };
   n7_news_analysis?: N7NewsAnalysis;
 }
 
 export interface Message {
   role: 'user' | 'assistant';
   content: string;
+  raw?: {
+    learning_pattern_analysis?: {
+      pattern_summary: string;
+      pattern_strengths: string[];
+      pattern_weaknesses: string[];
+      learning_recommendation: {
+        focus_area: string;
+        learning_reason: string;
+        learning_steps: string[];
+        recommended_topics: string[];
+      };
+      uncertainty_level: string;
+    };
+  };
 }
