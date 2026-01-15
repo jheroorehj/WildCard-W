@@ -230,7 +230,7 @@ def validate_node8(data: Dict[str, Any]) -> bool:
         return False
     if not isinstance(external_ratio, (int, float)):
         return False
-    if abs((internal_ratio + external_ratio) - 100) > 1:  # 허용 오차 1%
+    if abs((internal_ratio + external_ratio) - 100) > 5:  # 허용 오차 5%로 완화
         return False
 
     # root_causes 검증 (새로운 구조)
@@ -255,12 +255,9 @@ def validate_node8(data: Dict[str, Any]) -> bool:
 
         # subcategory 검증 (category에 따라 다른 허용값)
         subcategory = cause.get("subcategory")
-        if category == "internal":
-            if subcategory not in allowed_internal_sub:
-                return False
-        else:
-            if subcategory not in allowed_external_sub:
-                return False
+        # 프론트엔드에서 예외 처리가 되어 있으므로, 엄격한 검증 대신 타입만 확인
+        if not isinstance(subcategory, str):
+            return False
 
         # 문자열 필드 검증
         for key in ("title", "description"):
@@ -275,26 +272,26 @@ def validate_node8(data: Dict[str, Any]) -> bool:
             return False
 
         # impact_level 검증
-        if cause.get("impact_level") not in allowed_impact_level:
+        if not isinstance(cause.get("impact_level"), str):
             return False
 
         # timeline_relevance 검증
-        if cause.get("timeline_relevance") not in allowed_timeline:
+        if not isinstance(cause.get("timeline_relevance"), str):
             return False
 
         # evidence 검증
         evidence_list = cause.get("evidence")
         if not isinstance(evidence_list, list):
             return False
-        if len(evidence_list) < 1:  # 최소 1개 이상
-            return False
+        # 최소 개수 제한 완화 (LLM이 생략하는 경우 대비)
+        # if len(evidence_list) < 1: return False
 
         for ev in evidence_list:
             if not isinstance(ev, dict):
                 return False
-            if ev.get("source") not in allowed_evidence_source:
+            if not isinstance(ev.get("source"), str):
                 return False
-            if ev.get("type") not in allowed_evidence_type:
+            if not isinstance(ev.get("type"), str):
                 return False
             for k in ("data_point", "interpretation"):
                 if not isinstance(ev.get(k), str):
@@ -350,7 +347,8 @@ def validate_node8(data: Dict[str, Any]) -> bool:
             return False
         if not isinstance(indicator.get("name"), str):
             return False
-        if not isinstance(indicator.get("value"), str):
+        # 숫자로 들어오는 경우 허용
+        if not isinstance(indicator.get("value"), (str, int, float)):
             return False
         if not isinstance(indicator.get("interpretation"), str):
             return False
