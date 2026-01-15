@@ -28,7 +28,6 @@ def contains_advice(text: str) -> bool:
     """
     Node3 응답에 '조언/추천/투자' 등 행동 제안이 있으면 True를 반환합니다.
     """
-    print(f"Validating advice in text: {text}")
 
     if not text:
         return False
