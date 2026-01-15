@@ -38,7 +38,9 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({
   const lossCause = analysis?.n8_loss_cause_analysis;
   const marketContext = analysis?.n8_market_context_analysis;
   const pattern = analysis?.learning_pattern_analysis;
-  const recommendation = pattern?.learning_recommendation;
+  const tutor = report?.learning_tutor;
+  const learningPath = tutor?.custom_learning_path;
+  const advisor = tutor?.investment_advisor;
 
   const lossAnalysisTitle =
     lossCause?.one_line_summary || lossCause?.loss_check || '손실 원인 분석';
@@ -60,19 +62,13 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({
   ].filter(Boolean);
   const patternAnalysis = patternAnalysisDetails.join('\n\n');
 
-  const learningMaterials = report?.learning_materials || {
-    key_takeaways: recommendation?.recommended_topics || [],
-    recommended_topics: recommendation?.recommended_topics || [],
-    practice_steps: recommendation?.learning_steps || []
-  };
-  const learningPath = {
-    title: learningMaterials.key_takeaways.join(' · ') || '학습 경로',
-    description: '제공된 학습 자료를 바탕으로 개선 방향을 찾아보세요.',
-    actionItems: learningMaterials.practice_steps || []
-  };
+  const learningMaterials = learningPath?.learning_materials || [];
+  const learningPathSummary = learningPath?.path_summary || '학습 경로';
+  const learningSteps = learningPath?.practice_steps || [];
+  const learningTopics = learningPath?.recommended_topics || [];
   const behavioralGuide =
-    recommendation?.learning_reason || '현명한 투자 결정을 위해 노력하세요.';
-  const suggestedQuestions = [
+    advisor?.advisor_message || '현명한 투자 결정을 위해 노력하세요.';
+  const suggestedQuestions = advisor?.recommended_questions || [
     '이 패턴을 어떻게 개선할 수 있을까요?',
     '당시 시장 상황을 더 자세히 알려주세요.',
     '비슷한 실수를 방지하려면?'
@@ -210,18 +206,42 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({
                 </button>
               </div>
               <div className="space-y-3">
-                <h5 className="text-base font-bold text-white tracking-tight">{learningPath.title}</h5>
+                <h5 className="text-base font-bold text-white tracking-tight">{learningPathSummary}</h5>
                 {expanded.learningPath && (
                   <div className="animate-in fade-in slide-in-from-top-1 duration-300 space-y-3">
-                    <p className="text-[11px] text-slate-400 font-medium leading-relaxed">{learningPath.description}</p>
-                    <div className="space-y-2 pt-1">
-                      {learningPath.actionItems.map((item, idx) => (
-                        <div key={idx} className="flex items-start gap-2.5 group">
-                          <div className="w-1 h-1 rounded-full bg-blue-500 mt-1.5 shrink-0"></div>
-                          <p className="text-[12px] text-slate-200 font-medium leading-tight">{item}</p>
-                        </div>
-                      ))}
-                    </div>
+                    {!!learningMaterials.length && (
+                      <div className="space-y-2">
+                        <p className="text-[11px] text-slate-400 font-medium">학습 자료</p>
+                        {learningMaterials.map((item, idx) => (
+                          <div key={idx} className="flex items-start gap-2.5 group">
+                            <div className="w-1 h-1 rounded-full bg-blue-400 mt-1.5 shrink-0"></div>
+                            <p className="text-[12px] text-slate-200 font-medium leading-tight">{item}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {!!learningSteps.length && (
+                      <div className="space-y-2">
+                        <p className="text-[11px] text-slate-400 font-medium">실행 단계</p>
+                        {learningSteps.map((item, idx) => (
+                          <div key={idx} className="flex items-start gap-2.5 group">
+                            <div className="w-1 h-1 rounded-full bg-blue-500 mt-1.5 shrink-0"></div>
+                            <p className="text-[12px] text-slate-200 font-medium leading-tight">{item}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {!!learningTopics.length && (
+                      <div className="space-y-2">
+                        <p className="text-[11px] text-slate-400 font-medium">추천 주제</p>
+                        {learningTopics.map((item, idx) => (
+                          <div key={idx} className="flex items-start gap-2.5 group">
+                            <div className="w-1 h-1 rounded-full bg-blue-300 mt-1.5 shrink-0"></div>
+                            <p className="text-[12px] text-slate-200 font-medium leading-tight">{item}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

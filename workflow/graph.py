@@ -25,7 +25,6 @@ def build_graph():
     g.add_edge("N6", "N8")
     g.add_edge("N7", "N8")
     g.add_edge("N8", "N9")
-    g.add_edge("N8", "N10")
     g.add_edge("N9", "N10")
     g.add_edge("N10", "N4")
     g.add_edge("N4", END)

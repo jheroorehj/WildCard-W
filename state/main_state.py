@@ -26,7 +26,7 @@ class MainState(TypedDict, total=False):
     learning_pattern_analysis: Dict[str, object]
 
     # N10: 최종 리포트
-    loss_review_report: Dict[str, object]
+    n10_loss_review_report: Dict[str, object]
 
     # N4: 채팅 진입
     chat_entry: Dict[str, object]

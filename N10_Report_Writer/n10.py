@@ -20,7 +20,7 @@ from .prompt import NODE10_REPORT_PROMPT
 
 def node10_loss_review_report(state: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Node10: N8/N9 결과를 기반으로 투자 학습 경로를 생성합니다.
+    Node10: N8/N9 결과를 기반으로 투자 학습 튜터 출력을 생성합니다.
     """
     payload = {
         "n8_loss_cause_analysis": state.get("n8_loss_cause_analysis"),
@@ -66,13 +66,14 @@ def node10_loss_review_report(state: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _normalize(data: Dict[str, Any]) -> Dict[str, Any]:
-    return {
-        "report_title": str(data.get("report_title", "손실 복기 리포트")),
-        "overall_summary": str(data.get("overall_summary", "요약을 생성하지 못했습니다.")),
-        "node_summaries": _normalize_node_summaries(data.get("node_summaries")),
-        "learning_materials": _normalize_learning_materials(data.get("learning_materials")),
-        "uncertainty_level": data.get("uncertainty_level", "high"),
-    }
+    tutor = data.get("learning_tutor")
+    if isinstance(tutor, dict):
+        return {"learning_tutor": _normalize_learning_tutor(tutor)}
+
+    if _looks_like_tutor(data):
+        return {"learning_tutor": _normalize_learning_tutor(data)}
+
+    return {"learning_tutor": _normalize_learning_tutor({})}
 
 
 
@@ -93,41 +94,53 @@ def _coerce_list(value: Any) -> List[str]:
 
 
 
-def _normalize_node_summaries(value: Any) -> Dict[str, Dict[str, Any]]:
+def _normalize_learning_tutor(value: Any) -> Dict[str, Any]:
     if not isinstance(value, dict):
         value = {}
+    custom_path = value.get("custom_learning_path")
+    if not isinstance(custom_path, dict):
+        custom_path = {}
+    advisor = value.get("investment_advisor")
+    if not isinstance(advisor, dict):
+        advisor = {}
     return {
-        "n6": _normalize_node_block(value.get("n6")),
-        "n7": _normalize_node_block(value.get("n7")),
-        "n8": _normalize_node_block(value.get("n8")),
-        "n9": _normalize_node_block(value.get("n9")),
-    }
-
-
-def _normalize_node_block(value: Any) -> Dict[str, Any]:
-    if not isinstance(value, dict):
-        value = {}
-    return {
-        "summary": str(value.get("summary", "")),
-        "details": _coerce_list(value.get("details")),
-    }
-
-
-def _normalize_learning_materials(value: Any) -> Dict[str, Any]:
-    if not isinstance(value, dict):
-        value = {}
-    return {
-        "key_takeaways": _coerce_list(value.get("key_takeaways")),
-        "recommended_topics": _coerce_list(value.get("recommended_topics")),
-        "practice_steps": _coerce_list(value.get("practice_steps")),
+        "custom_learning_path": {
+            "path_summary": str(custom_path.get("path_summary", "")),
+            "learning_materials": _coerce_list(custom_path.get("learning_materials")),
+            "practice_steps": _coerce_list(custom_path.get("practice_steps")),
+            "recommended_topics": _coerce_list(custom_path.get("recommended_topics")),
+        },
+        "investment_advisor": {
+            "advisor_message": str(advisor.get("advisor_message", "")),
+            "recommended_questions": _coerce_list(advisor.get("recommended_questions")),
+        },
+        "uncertainty_level": value.get("uncertainty_level", "high"),
     }
 
 
 def _fallback(reason: str) -> Dict[str, Any]:
     return {
-        "report_title": "손실 복기 리포트",
-        "overall_summary": f"리포트를 생성하지 못했습니다. ({reason})",
-        "node_summaries": _normalize_node_summaries({}),
-        "learning_materials": _normalize_learning_materials({}),
-        "uncertainty_level": "high",
+        "learning_tutor": {
+            "custom_learning_path": {
+                "path_summary": "학습 경로를 생성하지 못했습니다.",
+                "learning_materials": [],
+                "practice_steps": [],
+                "recommended_topics": [],
+            },
+            "investment_advisor": {
+                "advisor_message": f"튜터 메시지를 생성하지 못했습니다. ({reason})",
+                "recommended_questions": [],
+            },
+            "uncertainty_level": "high",
+        }
     }
+
+
+def _looks_like_tutor(value: Any) -> bool:
+    if not isinstance(value, dict):
+        return False
+    if "custom_learning_path" in value:
+        return True
+    if "investment_advisor" in value:
+        return True
+    return False

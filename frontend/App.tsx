@@ -254,25 +254,7 @@ const App: React.FC = () => {
                        (step === 2 && formData.stocks.some(s => s.patterns.length === 0)) ||
                        (step === 3 && formData.decisionBasis.length === 0);
 
-  // Solar API data mapping
   const report = analysis?.n10_loss_review_report;
-  const lossAnalysisTitle = report?.node_summaries.n8.summary || '손실 원인 분석';
-  const lossAnalysis = report?.node_summaries.n8.details.join('\n\n') || '';
-  const marketAnalysisTitle = report?.node_summaries.n7.summary || '시장 상황 분석';
-  const marketAnalysis = report?.node_summaries.n7.details.join('\n\n') || '';
-  const patternAnalysisTitle = report?.node_summaries.n6.summary || '투자 패턴 분석';
-  const patternAnalysis = report?.node_summaries.n6.details.join('\n\n') || '';
-  const learningPath = {
-    title: report?.learning_materials.key_takeaways.join(' · ') || '학습 경로',
-    description: '제공된 학습 자료를 바탕으로 개선 방향을 찾아보세요.',
-    actionItems: report?.learning_materials.practice_steps || []
-  };
-  const behavioralGuide = report?.node_summaries.n9.summary || '현명한 투자 결정을 위해 노력하세요.';
-  const suggestedQuestions = [
-    '이 패턴을 어떻게 개선할 수 있을까요?',
-    '당시 시장 상황을 더 자세히 알려주세요.',
-    '비슷한 실수를 방지하려면?'
-  ];
 
   if (view === 'splash') {
     return <SplashView />;

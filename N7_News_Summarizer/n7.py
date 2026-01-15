@@ -28,13 +28,62 @@ def node7_news_summarizer(state: Dict[str, Any]) -> Dict[str, Any]:
 
     ticker = state.get("layer1_stock", "Unknown")
     buy_date = state.get("layer2_buy_date", "Unknown")
+    sell_date = state.get("layer2_sell_date") or None
     user_reason = state.get("layer3_decision_basis", "판단 근거 없음")
 
-    search_query = f"{ticker} 악재"
+    search_query = (
+        f"{ticker} 주가 OR {ticker} 실적 OR {ticker} 공시 OR {ticker} 가이던스 OR "
+        f'{ticker} "stock price" OR {ticker} earnings OR {ticker} filing OR {ticker} guidance'
+    )
 
     print(f"[*] N7 searching for: {search_query} around {buy_date}")
 
-    news_results = search_news_with_serper(search_query, date_range=buy_date, num_results=3)
+    news_results = search_news_with_serper(
+        search_query,
+        date_range=buy_date,
+        end_date=sell_date,
+        num_results=3,
+    )
+    if not news_results:
+        fallback_query = f"{ticker} 실적 OR 가이던스 OR 리스크 OR 악재 OR 호재"
+        print(f"[INFO] N7 fallback search (en/us): {fallback_query} around {buy_date}")
+        news_results = search_news_with_serper(
+            fallback_query,
+            date_range=buy_date,
+            end_date=sell_date,
+            num_results=3,
+            gl="us",
+            hl="en",
+        )
+    if not news_results:
+        print("[WARNING] N7 no news results after fallback search.")
+        empty_context = {
+            "ticker": ticker,
+            "period": {"buy_date": buy_date, "sell_date": state.get("layer2_sell_date")},
+            "summary": "관련 뉴스 검색 결과가 없습니다.",
+            "market_sentiment": {
+                "index": 50,
+                "label": "neutral",
+                "description": "데이터 부재로 인해 객관적인 시장 심리 판단 불가.",
+            },
+            "key_headlines": [],
+            "news_summaries": [
+                {
+                    "title": "정보 없음",
+                    "source": "N/A",
+                    "date": "N/A",
+                    "link": "N/A",
+                    "summary": "분석 가능한 뉴스 데이터 미제공.",
+                }
+            ],
+            "fact_check": {
+                "user_belief": user_reason,
+                "actual_fact": "제공된 뉴스 항목 없음.",
+                "verdict": "unknown",
+            },
+            "uncertainty_level": "high",
+        }
+        return {"n7_news_analysis": {"news_context": empty_context}}
     news_items = [
         {
             "title": n.get("title", ""),
@@ -79,6 +128,7 @@ def node7_news_summarizer(state: Dict[str, Any]) -> Dict[str, Any]:
     prompt = NODE7_SUMMARY_PROMPT.format(
         ticker=ticker,
         buy_date=buy_date,
+        sell_date=sell_date or "Unknown",
         user_reason=user_reason,
         news_items=news_payload,
     )
