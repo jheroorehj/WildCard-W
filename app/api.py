@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from datetime import datetime, date
+from typing import Any, Dict, List, Tuple, Optional
 from uuid import uuid4
+from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -18,6 +19,11 @@ from core.llm import get_solar_chat
 from langchain_core.messages import HumanMessage, SystemMessage
 from utils.json_parser import parse_json
 from app.quiz_prompt import QUIZ_SYSTEM_PROMPT
+
+# Metrics imports
+from metrics.evaluator import MetricsEvaluator, evaluate_basic_metrics
+from metrics.storage import load_metrics_json, get_metrics_summary, load_metrics_history
+from metrics.tier2_trust import parse_news_date
 
 
 class AnalyzeRequest(BaseModel):
@@ -154,6 +160,9 @@ async def _run_node(name: str, fn: Any, state: Dict[str, Any]) -> Dict[str, Any]
 
 @app.post("/v1/analyze")
 async def analyze(req: AnalyzeRequest) -> Dict[str, Any]:
+    # 분석 시작 시간 기록
+    start_time = datetime.now()
+
     if hasattr(req, "model_dump"):
         state: Dict[str, Any] = req.model_dump()
     else:
@@ -164,6 +173,9 @@ async def analyze(req: AnalyzeRequest) -> Dict[str, Any]:
         state["layer2_sell_date"] = datetime.utcnow().date().isoformat()
 
     result = await asyncio.to_thread(_graph.invoke, state)
+
+    # 분석 종료 시간 기록
+    end_time = datetime.now()
 
     request_id = str(uuid4())
     merged: Dict[str, Any] = {"request_id": request_id, **result}
@@ -184,6 +196,19 @@ async def analyze(req: AnalyzeRequest) -> Dict[str, Any]:
 
     await asyncio.to_thread(_save_to_supabase, request_id, state, node_results)
     await asyncio.to_thread(_save_to_chroma, request_id, state, node_results)
+
+    # 메트릭 평가 실행
+    metrics_report = await _evaluate_metrics(
+        request_id=request_id,
+        start_time=start_time,
+        end_time=end_time,
+        state=state,
+        result=result
+    )
+
+    # 결과에 메트릭 요약 추가
+    if metrics_report:
+        merged["metrics_summary"] = metrics_report.get("summary", {})
 
     return merged
 
@@ -297,3 +322,194 @@ def _is_valid_quiz(data: Dict[str, Any]) -> bool:
         if not isinstance(quiz.get("has_fixed_answer"), bool):
             return False
     return True
+
+
+# ============================================
+# Metrics Evaluation Functions & Endpoints
+# ============================================
+
+async def _evaluate_metrics(
+    request_id: str,
+    start_time: datetime,
+    end_time: datetime,
+    state: Dict[str, Any],
+    result: Dict[str, Any]
+) -> Optional[Dict[str, Any]]:
+    """
+    분석 결과에 대한 메트릭 평가 실행
+
+    LLM이 필요한 메트릭은 별도 호출 없이 기본 메트릭만 평가합니다.
+    전체 메트릭은 /v1/metrics/evaluate 엔드포인트로 별도 요청 가능합니다.
+    """
+    try:
+        # 뉴스 데이터 추출
+        news_analysis = result.get("n7_news_analysis", {})
+        news_context = news_analysis.get("news_context", {})
+        key_headlines = news_context.get("key_headlines", [])
+
+        # 날짜 파싱
+        buy_date = parse_news_date(state.get("layer2_buy_date", ""))
+        sell_date = parse_news_date(state.get("layer2_sell_date", ""))
+
+        # 뉴스 날짜 추출
+        news_dates = []
+        for headline in key_headlines:
+            date_str = headline.get("date", "")
+            if date_str:
+                parsed = parse_news_date(date_str)
+                if parsed:
+                    news_dates.append(parsed)
+
+        # JSON 검증 결과 (모든 노드가 결과를 반환했는지)
+        validation_results = [
+            result.get("n6_stock_analysis") is not None,
+            result.get("n7_news_analysis") is not None,
+            result.get("n8_loss_cause_analysis") is not None,
+            result.get("learning_pattern_analysis") is not None,
+            result.get("n10_loss_review_report") is not None,
+        ]
+
+        # 기본 메트릭 평가 (LLM 없이 측정 가능한 것들)
+        if buy_date and sell_date:
+            metrics = evaluate_basic_metrics(
+                start_time=start_time,
+                end_time=end_time,
+                validation_results=validation_results,
+                news_dates=news_dates,
+                buy_date=buy_date,
+                sell_date=sell_date,
+                request_id=request_id
+            )
+
+            # 요약 생성
+            summary = {}
+            for tier in ["impact", "trust", "stability"]:
+                tier_metrics = [m for m in metrics if m.get("tier") == tier]
+                if tier_metrics:
+                    passed = sum(1 for m in tier_metrics if m.get("passed", False))
+                    summary[tier] = round(passed / len(tier_metrics) * 100, 1)
+
+            total_passed = sum(1 for m in metrics if m.get("passed", False))
+            summary["overall"] = round(total_passed / len(metrics) * 100, 1) if metrics else 0
+
+            return {
+                "request_id": request_id,
+                "timestamp": datetime.now().isoformat(),
+                "metrics": metrics,
+                "summary": summary
+            }
+    except Exception as exc:
+        print(f"[WARNING] Metrics evaluation failed: {exc}")
+
+    return None
+
+
+@app.get("/v1/metrics/{request_id}")
+async def get_metrics(request_id: str) -> Dict[str, Any]:
+    """
+    특정 요청의 메트릭 결과 조회
+    """
+    report = load_metrics_json(request_id)
+    if report is None:
+        return {"error": f"Metrics not found for request_id: {request_id}"}
+    return report
+
+
+@app.get("/v1/metrics")
+async def get_all_metrics(
+    limit: int = Query(default=100, ge=1, le=1000)
+) -> Dict[str, Any]:
+    """
+    전체 메트릭 이력 조회
+    """
+    history = load_metrics_history(limit=limit)
+    return {
+        "count": len(history),
+        "metrics": history
+    }
+
+
+@app.get("/v1/metrics/summary")
+async def metrics_summary() -> Dict[str, Any]:
+    """
+    전체 메트릭 통계 요약
+
+    Returns:
+        Tier별 통과율 및 메트릭별 상세 통계
+    """
+    return get_metrics_summary()
+
+
+@app.post("/v1/metrics/evaluate")
+async def evaluate_metrics_full(req: AnalyzeRequest) -> Dict[str, Any]:
+    """
+    LLM Judge를 포함한 전체 메트릭 평가
+
+    분석 실행 후 모든 Tier의 메트릭을 평가합니다.
+    LLM 호출이 포함되어 있어 시간이 더 소요됩니다.
+    """
+    start_time = datetime.now()
+
+    if hasattr(req, "model_dump"):
+        state: Dict[str, Any] = req.model_dump()
+    else:
+        state = req.dict()
+    if not state.get("user_message"):
+        state["user_message"] = state.get("layer3_decision_basis", "")
+    if state.get("position_status") == "holding" and not state.get("layer2_sell_date"):
+        state["layer2_sell_date"] = datetime.utcnow().date().isoformat()
+
+    # 분석 실행
+    result = await asyncio.to_thread(_graph.invoke, state)
+    end_time = datetime.now()
+
+    request_id = str(uuid4())
+
+    # 뉴스 데이터 준비
+    news_analysis = result.get("n7_news_analysis", {})
+    news_context = news_analysis.get("news_context", {})
+
+    news_data = {
+        "ticker": news_context.get("ticker", state.get("layer1_stock", "")),
+        "buy_date": state.get("layer2_buy_date"),
+        "sell_date": state.get("layer2_sell_date"),
+        "items": news_context.get("key_headlines", []),
+        "dates": [],
+    }
+
+    # 검증 결과
+    validation_results = [
+        result.get("n6_stock_analysis") is not None,
+        result.get("n7_news_analysis") is not None,
+        result.get("n8_loss_cause_analysis") is not None,
+        result.get("learning_pattern_analysis") is not None,
+        result.get("n10_loss_review_report") is not None,
+    ]
+
+    # LLM을 사용한 전체 메트릭 평가
+    try:
+        llm = get_solar_chat()
+        evaluator = MetricsEvaluator(llm=llm)
+
+        report = await evaluator.evaluate_all(
+            request_id=request_id,
+            start_time=start_time,
+            end_time=end_time,
+            validation_results=validation_results,
+            news_data=news_data,
+            analysis_result=result,
+            golden_truth=None,  # Golden Dataset은 별도 테스트에서 사용
+            save_results=True
+        )
+
+        return {
+            "request_id": request_id,
+            "analysis_result": result,
+            "metrics_report": report
+        }
+    except Exception as exc:
+        return {
+            "request_id": request_id,
+            "error": f"Full metrics evaluation failed: {exc}",
+            "analysis_result": result
+        }

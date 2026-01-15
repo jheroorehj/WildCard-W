@@ -1,0 +1,235 @@
+{
+  "version": "1.0",
+  "generated_at": "2025-01-15T10:00:00",
+  "description": "WildCard-W AI 에이전트 평가를 위한 Golden Dataset",
+  "test_cases": [
+    {
+      "id": "TC001",
+      "scenario": "hidden_truth",
+      "description": "시장 탓이라 생각했지만 실제로는 개별 기업 악재가 원인",
+      "input": {
+        "layer1_stock": "삼성전자",
+        "layer2_buy_date": "2024-01-15",
+        "layer2_sell_date": "2024-02-15",
+        "layer3_decision_basis": "시장 전체가 하락해서 같이 떨어진 것 같다. 코스피도 많이 빠졌으니까."
+      },
+      "ground_truth": {
+        "actual_cause": "반도체 수요 둔화에 대한 우려와 경쟁사 대비 실적 전망 하향",
+        "category": "external",
+        "subcategory": "market_condition",
+        "key_evidence": "글로벌 반도체 수요 감소 뉴스, 애널리스트 목표가 하향 조정"
+      },
+      "user_belief_correct": false,
+      "expected_blind_spot_score": 1.0
+    },
+    {
+      "id": "TC002",
+      "scenario": "time_traveler",
+      "description": "매도 후 발표된 실적을 원인으로 착각",
+      "input": {
+        "layer1_stock": "카카오",
+        "layer2_buy_date": "2023-10-01",
+        "layer2_sell_date": "2023-12-15",
+        "layer3_decision_basis": "4분기 실적이 안 좋아서 떨어진 것 같다"
+      },
+      "ground_truth": {
+        "actual_cause": "매도 시점 기준으로는 규제 리스크와 광고 수익 감소 우려가 주요 원인",
+        "category": "external",
+        "subcategory": "regulatory_risk",
+        "key_evidence": "공정위 조사 뉴스, 광고 시장 둔화 보도 (12월 이전 기사)"
+      },
+      "user_belief_correct": false,
+      "expected_blind_spot_score": 1.0
+    },
+    {
+      "id": "TC003",
+      "scenario": "confirmation_bias",
+      "description": "금리 탓이라 생각했지만 더 중요한 원인 존재",
+      "input": {
+        "layer1_stock": "네이버",
+        "layer2_buy_date": "2024-03-01",
+        "layer2_sell_date": "2024-04-15",
+        "layer3_decision_basis": "금리가 계속 높아서 성장주가 다 힘든 것 같다"
+      },
+      "ground_truth": {
+        "actual_cause": "금리 영향도 있지만, 검색 점유율 하락과 AI 경쟁 심화가 더 큰 요인",
+        "category": "internal",
+        "subcategory": "competitive_pressure",
+        "key_evidence": "검색 시장 점유율 데이터, AI 서비스 경쟁 관련 뉴스"
+      },
+      "user_belief_correct": false,
+      "expected_blind_spot_score": 0.5
+    },
+    {
+      "id": "TC004",
+      "scenario": "external_shock",
+      "description": "내부 문제라 생각했지만 외부 충격이 원인",
+      "input": {
+        "layer1_stock": "현대차",
+        "layer2_buy_date": "2024-02-01",
+        "layer2_sell_date": "2024-03-01",
+        "layer3_decision_basis": "전기차 판매가 기대만큼 안 나온 것 같다. 회사 실력 문제"
+      },
+      "ground_truth": {
+        "actual_cause": "중동 지정학적 리스크로 인한 물류비 상승과 원자재 가격 급등",
+        "category": "external",
+        "subcategory": "geopolitical_risk",
+        "key_evidence": "홍해 사태 관련 뉴스, 해운비 상승 보도"
+      },
+      "user_belief_correct": false,
+      "expected_blind_spot_score": 1.0
+    },
+    {
+      "id": "TC005",
+      "scenario": "technical_miss",
+      "description": "기술적 지표를 무시하고 매수",
+      "input": {
+        "layer1_stock": "SK하이닉스",
+        "layer2_buy_date": "2024-01-20",
+        "layer2_sell_date": "2024-02-20",
+        "layer3_decision_basis": "AI 반도체 수요가 늘어날 것 같아서 샀는데 왜 떨어졌는지 모르겠다"
+      },
+      "ground_truth": {
+        "actual_cause": "매수 시점에 RSI가 80 이상으로 과매수 상태였고, 단기 차익실현 매물 출회",
+        "category": "internal",
+        "subcategory": "judgment_error",
+        "key_evidence": "RSI 과매수 신호, 외국인 순매도 전환 데이터"
+      },
+      "user_belief_correct": false,
+      "expected_blind_spot_score": 1.0
+    },
+    {
+      "id": "TC006",
+      "scenario": "herd_behavior",
+      "description": "군중 심리에 휩쓸려 고점 매수",
+      "input": {
+        "layer1_stock": "에코프로",
+        "layer2_buy_date": "2023-07-15",
+        "layer2_sell_date": "2023-09-15",
+        "layer3_decision_basis": "다들 이차전지 좋다고 해서 샀는데 갑자기 분위기가 바뀌었다"
+      },
+      "ground_truth": {
+        "actual_cause": "이미 밸류에이션이 과도하게 높은 상태에서 매수, 전형적인 FOMO 매수",
+        "category": "internal",
+        "subcategory": "behavioral_bias",
+        "key_evidence": "PER 200배 이상, 기관 순매도 지속"
+      },
+      "user_belief_correct": false,
+      "expected_blind_spot_score": 1.0
+    },
+    {
+      "id": "TC007",
+      "scenario": "hidden_truth",
+      "description": "업종 문제라 생각했지만 개별 기업 이슈",
+      "input": {
+        "layer1_stock": "LG에너지솔루션",
+        "layer2_buy_date": "2024-04-01",
+        "layer2_sell_date": "2024-05-15",
+        "layer3_decision_basis": "전기차 시장 전체가 둔화되어서 배터리주가 다 빠졌다"
+      },
+      "ground_truth": {
+        "actual_cause": "GM과의 조인트벤처 관련 투자 지연 발표 및 수익성 우려",
+        "category": "external",
+        "subcategory": "business_partnership",
+        "key_evidence": "GM JV 관련 뉴스, 설비투자 지연 공시"
+      },
+      "user_belief_correct": false,
+      "expected_blind_spot_score": 1.0
+    },
+    {
+      "id": "TC008",
+      "scenario": "technical_miss",
+      "description": "지지선 이탈을 무시한 경우",
+      "input": {
+        "layer1_stock": "POSCO홀딩스",
+        "layer2_buy_date": "2024-02-10",
+        "layer2_sell_date": "2024-03-20",
+        "layer3_decision_basis": "철강 가격이 오를 것 같아서 샀는데 계속 떨어졌다"
+      },
+      "ground_truth": {
+        "actual_cause": "200일 이동평균선 하향 이탈 후 기술적 매도세 증가",
+        "category": "internal",
+        "subcategory": "judgment_error",
+        "key_evidence": "차트상 200일선 이탈, 거래량 급증"
+      },
+      "user_belief_correct": false,
+      "expected_blind_spot_score": 1.0
+    },
+    {
+      "id": "TC009",
+      "scenario": "external_shock",
+      "description": "정책 변화에 따른 급락",
+      "input": {
+        "layer1_stock": "한화솔루션",
+        "layer2_buy_date": "2024-01-05",
+        "layer2_sell_date": "2024-02-28",
+        "layer3_decision_basis": "태양광 사업이 잘 될 줄 알았는데 회사가 부족한 것 같다"
+      },
+      "ground_truth": {
+        "actual_cause": "미국 IRA 보조금 축소 우려 및 중국 과잉공급 문제",
+        "category": "external",
+        "subcategory": "policy_change",
+        "key_evidence": "IRA 수정안 관련 뉴스, 중국 태양광 덤핑 이슈"
+      },
+      "user_belief_correct": false,
+      "expected_blind_spot_score": 1.0
+    },
+    {
+      "id": "TC010",
+      "scenario": "confirmation_bias",
+      "description": "일부 맞지만 더 큰 요인 존재",
+      "input": {
+        "layer1_stock": "셀트리온",
+        "layer2_buy_date": "2024-03-10",
+        "layer2_sell_date": "2024-04-25",
+        "layer3_decision_basis": "바이오주가 전반적으로 조정받는 시기여서 같이 빠진 것 같다"
+      },
+      "ground_truth": {
+        "actual_cause": "바이오 섹터 조정도 있었지만, FDA 승인 지연 이슈가 더 큰 요인",
+        "category": "external",
+        "subcategory": "regulatory_delay",
+        "key_evidence": "FDA 심사 연기 공시, 경쟁사 승인 소식"
+      },
+      "user_belief_correct": false,
+      "expected_blind_spot_score": 0.5
+    },
+    {
+      "id": "TC011",
+      "scenario": "herd_behavior",
+      "description": "유튜버 추천 따라 매수",
+      "input": {
+        "layer1_stock": "두산에너빌리티",
+        "layer2_buy_date": "2024-05-01",
+        "layer2_sell_date": "2024-06-15",
+        "layer3_decision_basis": "원전 관련주라고 유명 유튜버가 추천해서 샀다"
+      },
+      "ground_truth": {
+        "actual_cause": "이미 원전 테마로 급등한 후 차익실현 매물, 실적 대비 고평가",
+        "category": "internal",
+        "subcategory": "behavioral_bias",
+        "key_evidence": "테마 급등 후 조정 패턴, PBR 고점 데이터"
+      },
+      "user_belief_correct": false,
+      "expected_blind_spot_score": 1.0
+    },
+    {
+      "id": "TC012",
+      "scenario": "time_traveler",
+      "description": "이후 발표된 가이던스를 원인으로 착각",
+      "input": {
+        "layer1_stock": "삼성SDI",
+        "layer2_buy_date": "2024-04-10",
+        "layer2_sell_date": "2024-05-20",
+        "layer3_decision_basis": "2분기 가이던스가 안 좋게 나와서 떨어진 것 같다"
+      },
+      "ground_truth": {
+        "actual_cause": "매도 시점 전에는 유럽 전기차 보조금 축소 뉴스가 주요 하락 요인",
+        "category": "external",
+        "subcategory": "subsidy_reduction",
+        "key_evidence": "유럽 전기차 보조금 정책 변경 뉴스 (4-5월)"
+      },
+      "user_belief_correct": false,
+      "expected_blind_spot_score": 1.0
+    }
+  ]
+}
