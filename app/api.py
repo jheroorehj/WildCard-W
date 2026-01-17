@@ -104,8 +104,6 @@ def _save_to_supabase(request_id: str, state: Dict[str, Any], results: Dict[str,
 def _save_to_chroma(request_id: str, state: Dict[str, Any], results: Dict[str, Any]) -> None:
     try:
         embeddings = _get_embedding_service()
-        llm_collection = get_chroma_collection("llm_outputs")
-        learning_collection = get_chroma_collection("learning_data")
         external_news_collection = get_chroma_collection("external_news")
         stock_metrics_collection = get_chroma_collection("stock_metrics")
         internal_facts_collection = get_chroma_collection("internal_facts")
@@ -115,38 +113,6 @@ def _save_to_chroma(request_id: str, state: Dict[str, Any], results: Dict[str, A
                 return
             vectors = embeddings.create_embeddings(docs)
             collection.add(ids=ids, documents=docs, embeddings=vectors, metadatas=metas)
-
-        llm_docs = []
-        llm_ids = []
-        llm_meta = []
-        for node_key in ("n6", "n7", "n8", "n9", "n10"):
-            node_result = results.get(node_key)
-            if node_result is None:
-                continue
-            llm_docs.append(_safe_json(node_result))
-            llm_ids.append(f"{request_id}:{node_key}")
-            llm_meta.append({"request_id": request_id, "node": node_key})
-        if llm_docs:
-            _add_docs(llm_collection, llm_docs, llm_ids, llm_meta)
-
-        learning_docs = []
-        learning_meta = []
-        learning_id = f"{request_id}:learning"
-        basis = state.get("layer3_decision_basis")
-        user_message = state.get("user_message")
-        if basis:
-            learning_docs.append(str(basis))
-            learning_meta.append({"request_id": request_id, "source": "decision_basis"})
-        if user_message and user_message != basis:
-            learning_docs.append(str(user_message))
-            learning_meta.append({"request_id": request_id, "source": "user_message"})
-        if learning_docs:
-            _add_docs(
-                learning_collection,
-                learning_docs,
-                [f"{learning_id}:{i}" for i in range(len(learning_docs))],
-                learning_meta,
-            )
 
         # N7 뉴스 요약/헤드라인 저장 (RAG 대비)
         n7_payload = results.get("n7") or {}
