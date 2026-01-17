@@ -18,7 +18,7 @@ from .prompt import NODE10_REPORT_PROMPT
 
 
 
-def node10_loss_review_report(state: Dict[str, Any]) -> Dict[str, Any]:
+def node10_learning_tutor(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Node10: N8/N9 결과를 기반으로 투자 학습 튜터 출력을 생성합니다.
     """

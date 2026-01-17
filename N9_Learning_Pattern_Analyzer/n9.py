@@ -8,7 +8,7 @@ from utils.json_parser import parse_json
 from utils.validator import validate_node9
 
 
-def node9_fallback_handler(state: Dict[str, Any]) -> Dict[str, Any]:
+def node9_learning_pattern_analyzer(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Node9: 학습 패턴 분석
     """

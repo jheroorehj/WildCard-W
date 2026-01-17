@@ -1,0 +1,48 @@
+Docker 이미지 업데이트 & AWS 배포 방법
+1. 로컬에서 Docker 이미지 빌드 & 푸시
+
+# 백엔드 이미지 빌드 & 푸시
+docker buildx build \
+  --platform linux/amd64 \
+  --target backend \
+  -t ghcr.io/jheroorehj/wildcard-backend:latest \
+  --push \
+  .
+
+# 프론트엔드 이미지 빌드 & 푸시
+docker buildx build \
+  --platform linux/amd64 \
+  --target frontend \
+  --build-arg VITE_API_BASE_URL="" \
+  -t ghcr.io/jheroorehj/wildcard-frontend:latest \
+  --push \
+  .
+2. EC2 서버에서 재배포
+
+# 새 이미지 pull
+docker pull ghcr.io/jheroorehj/wildcard-backend:latest
+docker pull ghcr.io/jheroorehj/wildcard-frontend:latest
+
+# 기존 컨테이너 중지 & 삭제
+docker stop backend wildcard-frontend
+docker rm backend wildcard-frontend
+
+# 백엔드 실행
+docker run -d \
+  --name backend \
+  --network wildcard-network \
+  -p 8000:8000 \
+  --restart always \
+  ghcr.io/jheroorehj/wildcard-backend:latest
+
+# 프론트엔드 실행
+docker run -d \
+  --name wildcard-frontend \
+  --network wildcard-network \
+  -p 80:80 \
+  --restart always \
+  ghcr.io/jheroorehj/wildcard-frontend:latest
+
+# 확인
+docker ps
+curl http://localhost/v1/health

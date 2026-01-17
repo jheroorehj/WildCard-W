@@ -11,7 +11,7 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from N9_Fallback_Handler.n9 import node9_fallback_handler
+from N9_Learning_Pattern_Analyzer.n9 import node9_learning_pattern_analyzer
 from workflow.graph import build_graph
 from app.service.embedding_service import EmbeddingService
 from core.db import get_chroma_collection, get_supabase_client
@@ -217,7 +217,7 @@ async def analyze(req: AnalyzeRequest) -> Dict[str, Any]:
 async def chat(req: ChatRequest) -> Dict[str, Any]:
     context = "\n".join([f"{m.role}: {m.content}" for m in req.history][-10:])
     state = {"user_message": req.message, "context": context}
-    result = node9_fallback_handler(state)
+    result = node9_learning_pattern_analyzer(state)
 
     llm = get_solar_chat()
     messages: List[Any] = [

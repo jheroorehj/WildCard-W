@@ -100,7 +100,7 @@ export interface N8ConceptExplanation {
   uncertainty_level?: string;
 }
 
-export interface N9FallbackResponse {
+export interface N9LearningPatternResponse {
   message: string;
   intent_hint: string;
 }

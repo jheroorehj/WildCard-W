@@ -1,3 +1,3 @@
-from .n9 import node9_fallback_handler
+from .n9 import node9_learning_pattern_analyzer
 
-__all__ = ["node9_fallback_handler"]
+__all__ = ["node9_learning_pattern_analyzer"]

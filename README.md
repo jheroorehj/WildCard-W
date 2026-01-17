@@ -12,8 +12,8 @@ WildCard/
 ├── N6_Stock_Analyst/               # 주식 분석 노드
 ├── N7_News_Summarizer/             # 뉴스 요약 노드
 ├── N8_Loss_Analyst/                # 손실 분석 노드
-├── N9_Learning_Pattern_Analyst/    # 학습 패턴 분석 노드
-├── N10_Report_Writer/              # 투자 학습 튜터
+├── N9_Learning_Pattern_Analyzer/   # 학습 패턴 분석 노드
+├── N10_Learning_Tutor/             # 투자 학습 튜터
 ├── state/                          # 상태 관리
 ├── utils/                          # 유틸리티
 └── workflow/                       # 워크플로우 정의
@@ -147,8 +147,13 @@ python test_env.py
 ### N8 - Concept Explainer
 투자 개념과 용어 설명
 
-### N9 - Fallback Handler
-예외 상황 처리 및 사용자 안내
+### N9 - Learning Pattern Analyzer
+
+학습 패턴 분석 및 맞춤 학습 경로 제시
+
+### N10 - Learning Tutor
+
+투자 학습 튜터 및 공감 기반 조언
 
 ## 🤝 협업 가이드
 
