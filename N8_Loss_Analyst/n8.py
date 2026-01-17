@@ -4,6 +4,7 @@ from typing import Any, Dict
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from core.llm import get_solar_chat
+from core.db import build_chroma_where, query_chroma_collection
 from langsmith.run_helpers import get_current_run_tree
 from utils.json_parser import parse_json
 from utils.safety import contains_advice
@@ -13,18 +14,48 @@ from metrics.models import METRIC_TARGETS
 from .prompt import NODE8_LOSS_ANALYST_PROMPT
 
 
+def _collect_rag_docs(result: Dict[str, Any]) -> list[str]:
+    docs = result.get("documents")
+    if not isinstance(docs, list) or not docs:
+        return []
+    first = docs[0]
+    if not isinstance(first, list):
+        return []
+    return [item for item in first if isinstance(item, str) and item.strip()]
+
+
+def _build_rag_context(ticker: str, buy_date: str, sell_date: str | None) -> str:
+    where = build_chroma_where(ticker=ticker, start_date=buy_date, end_date=sell_date)
+    query_text = f"{ticker} {buy_date} {sell_date or ''} loss cause market"
+    sections = []
+    for name in ("external_news", "stock_metrics", "internal_facts"):
+        try:
+            result = query_chroma_collection(name, query_text, top_k=3, where=where)
+        except Exception:
+            continue
+        docs = _collect_rag_docs(result)
+        if docs:
+            sections.append(f"[{name}] " + " | ".join(docs))
+    return "\n".join(sections)
+
+
 def node8_loss_analyst(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     N8: loss analyst.
     Uses N6/N7 outputs to derive loss causes and market context.
     """
+    ticker = state.get("layer1_stock")
+    buy_date = state.get("layer2_buy_date")
+    sell_date = state.get("layer2_sell_date")
+    rag_context = _build_rag_context(ticker or "", buy_date or "", sell_date)
     payload = {
-        "ticker": state.get("layer1_stock"),
-        "buy_date": state.get("layer2_buy_date"),
-        "sell_date": state.get("layer2_sell_date"),
+        "ticker": ticker,
+        "buy_date": buy_date,
+        "sell_date": sell_date,
         "user_decision_basis": state.get("layer3_decision_basis"),
         "n6_stock_analysis": state.get("n6_stock_analysis"),
         "n7_news_analysis": state.get("n7_news_analysis"),
+        "rag_context": rag_context,
     }
 
     llm = get_solar_chat()

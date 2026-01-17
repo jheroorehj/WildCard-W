@@ -4,6 +4,7 @@ import json
 import os
 
 from core.llm import get_solar_chat, get_upstage_embeddings
+from core.db import build_chroma_where, query_chroma_collection
 from .prompt import NODE7_SUMMARY_PROMPT
 from .search_tool import search_news_with_serper
 from .metrics import evaluate_n7_metrics, persist_n7_metrics
@@ -18,6 +19,31 @@ try:
 except ImportError:
     HAS_REPOSITORY = False
     print("[WARNING] Repository modules not found. Database features will be disabled.")
+
+
+def _collect_rag_docs(result: Dict[str, Any]) -> list[str]:
+    docs = result.get("documents")
+    if not isinstance(docs, list) or not docs:
+        return []
+    first = docs[0]
+    if not isinstance(first, list):
+        return []
+    return [item for item in first if isinstance(item, str) and item.strip()]
+
+
+def _build_rag_context(ticker: str, buy_date: str, sell_date: str | None) -> str:
+    where = build_chroma_where(ticker=ticker, start_date=buy_date, end_date=sell_date)
+    query_text = f"{ticker} {buy_date} {sell_date or ''} market news"
+    sections = []
+    for name in ("external_news", "stock_metrics", "internal_facts"):
+        try:
+            result = query_chroma_collection(name, query_text, top_k=3, where=where)
+        except Exception:
+            continue
+        docs = _collect_rag_docs(result)
+        if docs:
+            sections.append(f"[{name}] " + " | ".join(docs))
+    return "\n".join(sections)
 
 
 @traceable(name="N7_News_Summarizer")
@@ -133,6 +159,7 @@ def node7_news_summarizer(state: Dict[str, Any]) -> Dict[str, Any]:
         }
         for n in news_results[:3]
     ]
+    rag_context = _build_rag_context(ticker, buy_date, sell_date)
 
     # ChromaDB 저장 (선택적)
     if HAS_REPOSITORY:
@@ -170,6 +197,7 @@ def node7_news_summarizer(state: Dict[str, Any]) -> Dict[str, Any]:
         sell_date=sell_date or "Unknown",
         user_reason=user_reason,
         news_items=news_payload,
+        rag_context=rag_context,
     )
 
     try:
