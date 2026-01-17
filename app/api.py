@@ -116,11 +116,12 @@ def _save_to_chroma(request_id: str, state: Dict[str, Any], results: Dict[str, A
 
         # N7 뉴스 요약/헤드라인 저장 (RAG 대비)
         n7_payload = results.get("n7") or {}
-        n7_context = (
-            n7_payload.get("n7_news_analysis", {}).get("news_context", {})
-            if isinstance(n7_payload, dict)
-            else {}
-        )
+        n7_context: Dict[str, Any] = {}
+        if isinstance(n7_payload, dict):
+            if isinstance(n7_payload.get("news_context"), dict):
+                n7_context = n7_payload.get("news_context", {})
+            elif isinstance(n7_payload.get("n7_news_analysis"), dict):
+                n7_context = n7_payload.get("n7_news_analysis", {}).get("news_context", {})
         ticker = n7_context.get("ticker") or state.get("layer1_stock")
         news_items = []
         for item in (n7_context.get("news_summaries") or []):
@@ -172,11 +173,12 @@ def _save_to_chroma(request_id: str, state: Dict[str, Any], results: Dict[str, A
 
         # N6 핵심 지표 요약 저장 (RAG 대비)
         n6_payload = results.get("n6") or {}
-        stock_analysis = (
-            n6_payload.get("n6_stock_analysis", {}).get("stock_analysis", {})
-            if isinstance(n6_payload, dict)
-            else {}
-        )
+        stock_analysis: Dict[str, Any] = {}
+        if isinstance(n6_payload, dict):
+            if isinstance(n6_payload.get("stock_analysis"), dict):
+                stock_analysis = n6_payload.get("stock_analysis", {})
+            elif isinstance(n6_payload.get("n6_stock_analysis"), dict):
+                stock_analysis = n6_payload.get("n6_stock_analysis", {}).get("stock_analysis", {})
         if isinstance(stock_analysis, dict) and stock_analysis:
             period = stock_analysis.get("period", {})
             price_move = stock_analysis.get("price_move", {})
