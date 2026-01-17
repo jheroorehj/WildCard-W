@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Any, List
 
 import chromadb
 from chromadb.config import Settings
@@ -40,3 +40,37 @@ def get_chroma_client() -> chromadb.ClientAPI:
 def get_chroma_collection(name: str) -> chromadb.Collection:
     client = get_chroma_client()
     return client.get_or_create_collection(name=name)
+
+
+def build_chroma_where(
+    ticker: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    where: Dict[str, Any] = {}
+    if ticker:
+        where["ticker"] = ticker
+    if start_date or end_date:
+        date_filter: Dict[str, Any] = {}
+        if start_date:
+            date_filter["$gte"] = start_date
+        if end_date:
+            date_filter["$lte"] = end_date
+        where["date"] = date_filter
+    return where or None
+
+
+def query_chroma_collection(
+    name: str,
+    query_text: str,
+    top_k: int = 3,
+    where: Optional[Dict[str, Any]] = None,
+) -> Dict[str, List[Any]]:
+    collection = get_chroma_collection(name)
+    query: Dict[str, Any] = {"query_texts": [query_text], "n_results": top_k}
+    if where:
+        query["where"] = where
+    return collection.query(
+        **query,
+        include=["documents", "metadatas", "ids", "distances"],
+    )

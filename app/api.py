@@ -128,44 +128,145 @@ def _save_to_supabase(request_id: str, state: Dict[str, Any], results: Dict[str,
 def _save_to_chroma(request_id: str, state: Dict[str, Any], results: Dict[str, Any]) -> None:
     try:
         embeddings = _get_embedding_service()
-        llm_collection = get_chroma_collection("llm_outputs")
-        learning_collection = get_chroma_collection("learning_data")
+        external_news_collection = get_chroma_collection("external_news")
+        stock_metrics_collection = get_chroma_collection("stock_metrics")
+        internal_facts_collection = get_chroma_collection("internal_facts")
 
-        llm_docs = []
-        llm_ids = []
-        llm_meta = []
-        for node_key in ("n6", "n7", "n8", "n9", "n10"):
-            node_result = results.get(node_key)
-            if node_result is None:
+        def _add_docs(collection, docs: List[str], ids: List[str], metas: List[Dict[str, Any]]) -> None:
+            if not docs:
+                return
+            vectors = embeddings.create_embeddings(docs)
+            collection.add(ids=ids, documents=docs, embeddings=vectors, metadatas=metas)
+
+        # N7 뉴스 요약/헤드라인 저장 (RAG 대비)
+        n7_payload = results.get("n7") or {}
+        n7_context: Dict[str, Any] = {}
+        if isinstance(n7_payload, dict):
+            if isinstance(n7_payload.get("news_context"), dict):
+                n7_context = n7_payload.get("news_context", {})
+            elif isinstance(n7_payload.get("n7_news_analysis"), dict):
+                n7_context = n7_payload.get("n7_news_analysis", {}).get("news_context", {})
+        ticker = n7_context.get("ticker") or state.get("layer1_stock")
+        news_items = []
+        for item in (n7_context.get("news_summaries") or []):
+            if not isinstance(item, dict):
                 continue
-            llm_docs.append(_safe_json(node_result))
-            llm_ids.append(f"{request_id}:{node_key}")
-            llm_meta.append({"request_id": request_id, "node": node_key})
-        if llm_docs:
-            llm_embeddings = embeddings.create_embeddings(llm_docs)
-            llm_collection.add(
-                ids=llm_ids, documents=llm_docs, embeddings=llm_embeddings, metadatas=llm_meta
+            news_items.append(
+                {
+                    "title": item.get("title"),
+                    "summary": item.get("summary"),
+                    "date": item.get("date"),
+                    "source": item.get("source"),
+                    "link": item.get("link"),
+                }
+            )
+        for item in (n7_context.get("key_headlines") or []):
+            if not isinstance(item, dict):
+                continue
+            news_items.append(
+                {
+                    "title": item.get("title"),
+                    "summary": item.get("snippet"),
+                    "date": item.get("date"),
+                    "source": item.get("source"),
+                    "link": item.get("link"),
+                }
             )
 
-        learning_docs = []
-        learning_meta = []
-        learning_id = f"{request_id}:learning"
-        basis = state.get("layer3_decision_basis")
-        user_message = state.get("user_message")
-        if basis:
-            learning_docs.append(str(basis))
-            learning_meta.append({"request_id": request_id, "source": "decision_basis"})
-        if user_message and user_message != basis:
-            learning_docs.append(str(user_message))
-            learning_meta.append({"request_id": request_id, "source": "user_message"})
-        if learning_docs:
-            learning_embeddings = embeddings.create_embeddings(learning_docs)
-            learning_collection.add(
-                ids=[f"{learning_id}:{i}" for i in range(len(learning_docs))],
-                documents=learning_docs,
-                embeddings=learning_embeddings,
-                metadatas=learning_meta,
+        external_docs = []
+        external_ids = []
+        external_meta = []
+        for idx, item in enumerate(news_items):
+            title = item.get("title") or ""
+            summary = item.get("summary") or ""
+            if not title and not summary:
+                continue
+            text = f"{title}\n{summary}".strip()
+            external_docs.append(text)
+            external_ids.append(f"{request_id}:news:{idx}")
+            external_meta.append(
+                {
+                    "request_id": request_id,
+                    "ticker": ticker,
+                    "date": item.get("date"),
+                    "source": item.get("source"),
+                    "link": item.get("link"),
+                }
             )
+        _add_docs(external_news_collection, external_docs, external_ids, external_meta)
+
+        # N6 핵심 지표 요약 저장 (RAG 대비)
+        n6_payload = results.get("n6") or {}
+        stock_analysis: Dict[str, Any] = {}
+        if isinstance(n6_payload, dict):
+            if isinstance(n6_payload.get("stock_analysis"), dict):
+                stock_analysis = n6_payload.get("stock_analysis", {})
+            elif isinstance(n6_payload.get("n6_stock_analysis"), dict):
+                stock_analysis = n6_payload.get("n6_stock_analysis", {}).get("stock_analysis", {})
+        if isinstance(stock_analysis, dict) and stock_analysis:
+            period = stock_analysis.get("period", {})
+            price_move = stock_analysis.get("price_move", {})
+            trend = stock_analysis.get("trend")
+            indicators = stock_analysis.get("indicators") or []
+            indicator_text = "; ".join(
+                f"{i.get('name')}={i.get('value')}" for i in indicators if isinstance(i, dict)
+            )
+            summary_text = (
+                f"ticker={stock_analysis.get('ticker')}, "
+                f"pct_change={price_move.get('pct_change')}, "
+                f"trend={trend}, "
+                f"indicators={indicator_text}"
+            )
+            _add_docs(
+                stock_metrics_collection,
+                [summary_text],
+                [f"{request_id}:stock_metrics:0"],
+                [
+                    {
+                        "request_id": request_id,
+                        "ticker": stock_analysis.get("ticker") or ticker,
+                        "buy_date": period.get("buy_date"),
+                        "sell_date": period.get("sell_date"),
+                    }
+                ],
+            )
+
+        # 내부 fact 저장 (검증된 구조 데이터 기반)
+        internal_docs = []
+        internal_ids = []
+        internal_meta = []
+        for idx, item in enumerate(news_items):
+            title = item.get("title") or ""
+            if not title:
+                continue
+            internal_docs.append(title)
+            internal_ids.append(f"{request_id}:fact:news:{idx}")
+            internal_meta.append(
+                {
+                    "request_id": request_id,
+                    "ticker": ticker,
+                    "date": item.get("date"),
+                    "source": item.get("source") or "news",
+                    "topic": "news",
+                }
+            )
+        if isinstance(stock_analysis, dict) and stock_analysis:
+            fact_text = (
+                f"{stock_analysis.get('ticker')} pct_change={price_move.get('pct_change')}, "
+                f"trend={trend}"
+            )
+            internal_docs.append(fact_text)
+            internal_ids.append(f"{request_id}:fact:stock:0")
+            internal_meta.append(
+                {
+                    "request_id": request_id,
+                    "ticker": stock_analysis.get("ticker") or ticker,
+                    "date": period.get("sell_date") or period.get("buy_date"),
+                    "source": "indicator",
+                    "topic": "stock_metrics",
+                }
+            )
+        _add_docs(internal_facts_collection, internal_docs, internal_ids, internal_meta)
     except Exception as exc:
         print(f"[WARNING] Chroma save failed: {exc}")
 

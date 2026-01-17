@@ -8,6 +8,7 @@ from curl_cffi import requests as curl_requests
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from core.llm import get_solar_chat
+from core.db import build_chroma_where, query_chroma_collection
 from langsmith import traceable
 from langsmith.run_helpers import get_current_run_tree
 from .judge import judge_n6_quality
@@ -80,6 +81,31 @@ def generate_llm_chart_analysis(payload: Dict[str, Any]) -> Optional[str]:
         return None
 
 
+def _collect_rag_docs(result: Dict[str, Any]) -> list[str]:
+    docs = result.get("documents")
+    if not isinstance(docs, list) or not docs:
+        return []
+    first = docs[0]
+    if not isinstance(first, list):
+        return []
+    return [item for item in first if isinstance(item, str) and item.strip()]
+
+
+def _build_rag_context(ticker: str, buy_date: str, sell_date: str | None) -> str:
+    where = build_chroma_where(ticker=ticker, start_date=buy_date, end_date=sell_date)
+    query_text = f"{ticker} {buy_date} {sell_date or ''} technical indicators"
+    sections = []
+    for name in ("stock_metrics", "internal_facts"):
+        try:
+            result = query_chroma_collection(name, query_text, top_k=3, where=where)
+        except Exception:
+            continue
+        docs = _collect_rag_docs(result)
+        if docs:
+            sections.append(f"[{name}] " + " | ".join(docs))
+    return "\n".join(sections)
+
+
 @traceable(name="N6_Stock_Analyst")
 def node6_stock_analyst(state: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -122,6 +148,7 @@ def node6_stock_analyst(state: Dict[str, Any]) -> Dict[str, Any]:
         analysis_result["stock_analysis"]["ticker"] = ticker
         analysis_result["stock_analysis"]["resolved_from"] = stock_name
 
+        rag_context = _build_rag_context(ticker, buy_date, sell_date)
         llm_analysis = generate_llm_chart_analysis(
             {
                 "ticker": ticker,
@@ -132,6 +159,7 @@ def node6_stock_analyst(state: Dict[str, Any]) -> Dict[str, Any]:
                 "indicators": analysis_result["stock_analysis"].get("indicators"),
                 "volume_analysis": analysis_result["stock_analysis"].get("volume_analysis"),
                 "risk_notes": analysis_result["stock_analysis"].get("risk_notes"),
+                "rag_context": rag_context,
             }
         )
         if llm_analysis:

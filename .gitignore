@@ -74,3 +74,5 @@ N3_IMPROVEMENT_PLAN.md
 UPDATE_SUMMARY.md
 .venv/
 data/
+metrics/results/
+N8_Loss_Analyst/n8_dataset_from_traces.runs.json
