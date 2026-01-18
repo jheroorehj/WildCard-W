@@ -117,3 +117,28 @@ def get_upstage_embeddings() -> UpstageEmbeddings:
     """
     return _client.get_embedding_model()
 
+
+def _extract_usage(response: object) -> Optional[dict]:
+    usage = None
+    meta = getattr(response, "response_metadata", None)
+    if isinstance(meta, dict):
+        for key in ("token_usage", "usage", "usage_metadata"):
+            value = meta.get(key)
+            if isinstance(value, dict):
+                usage = value
+                break
+    if usage is None:
+        usage_attr = getattr(response, "usage_metadata", None)
+        if isinstance(usage_attr, dict):
+            usage = usage_attr
+    if not isinstance(usage, dict):
+        return None
+    return usage
+
+
+def invoke_with_usage(llm: ChatUpstage, payload: object) -> tuple[str, Optional[dict]]:
+    response = llm.invoke(payload)
+    content = response.content if isinstance(response.content, str) else str(response.content)
+    usage = _extract_usage(response)
+    return content, usage
+

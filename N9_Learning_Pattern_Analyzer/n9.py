@@ -2,7 +2,7 @@ from typing import Any, Dict
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from core.llm import get_solar_chat
+from core.llm import get_solar_chat, invoke_with_usage
 from .prompt import NODE9_SYSTEM_PROMPT
 from utils.json_parser import parse_json
 from utils.validator import validate_node9
@@ -38,8 +38,7 @@ def node9_learning_pattern_analyzer(state: Dict[str, Any]) -> Dict[str, Any]:
         ),
     ]
 
-    response = llm.invoke(messages)
-    raw = response.content if isinstance(response.content, str) else str(response.content)
+    raw, llm_usage = invoke_with_usage(llm, messages)
 
     parsed = parse_json(raw)
     if not isinstance(parsed, dict):
@@ -47,6 +46,9 @@ def node9_learning_pattern_analyzer(state: Dict[str, Any]) -> Dict[str, Any]:
 
     if not validate_node9(parsed):
         return _fallback()
+
+    if llm_usage:
+        parsed["n9_llm_usage"] = llm_usage
 
     return parsed
 

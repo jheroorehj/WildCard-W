@@ -73,6 +73,70 @@ def _safe_json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, default=str)
 
 
+def _to_int(value: Any) -> Optional[int]:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _normalize_usage(usage: Dict[str, Any]) -> Dict[str, int]:
+    prompt = _to_int(usage.get("prompt_tokens") or usage.get("input_tokens"))
+    completion = _to_int(usage.get("completion_tokens") or usage.get("output_tokens"))
+    total = _to_int(usage.get("total_tokens") or usage.get("total"))
+    if total is None and prompt is not None and completion is not None:
+        total = prompt + completion
+    normalized: Dict[str, int] = {}
+    if prompt is not None:
+        normalized["prompt_tokens"] = prompt
+    if completion is not None:
+        normalized["completion_tokens"] = completion
+    if total is not None:
+        normalized["total_tokens"] = total
+    return normalized
+
+
+def _collect_token_usage(result: Dict[str, Any]) -> Dict[str, Any]:
+    usages: Dict[str, Dict[str, int]] = {}
+    n6_usage = (
+        result.get("n6_stock_analysis", {})
+        .get("stock_analysis", {})
+        .get("llm_usage")
+    )
+    if isinstance(n6_usage, dict):
+        usages["n6"] = _normalize_usage(n6_usage)
+    n7_usage = (
+        result.get("n7_news_analysis", {})
+        .get("news_context", {})
+        .get("llm_usage")
+    )
+    if isinstance(n7_usage, dict):
+        usages["n7"] = _normalize_usage(n7_usage)
+    n8_usage = result.get("n8_llm_usage")
+    if isinstance(n8_usage, dict):
+        usages["n8"] = _normalize_usage(n8_usage)
+    n9_usage = result.get("n9_llm_usage")
+    if isinstance(n9_usage, dict):
+        usages["n9"] = _normalize_usage(n9_usage)
+    n10_usage = result.get("n10_loss_review_report", {}).get("llm_usage")
+    if isinstance(n10_usage, dict):
+        usages["n10"] = _normalize_usage(n10_usage)
+
+    if not usages:
+        return {}
+
+    total_prompt = sum(item.get("prompt_tokens", 0) for item in usages.values())
+    total_completion = sum(item.get("completion_tokens", 0) for item in usages.values())
+    total_tokens = sum(item.get("total_tokens", 0) for item in usages.values())
+    totals = {
+        "prompt_tokens": total_prompt,
+        "completion_tokens": total_completion,
+        "total_tokens": total_tokens,
+    }
+
+    return {"total": totals, "per_node": usages}
+
+
 def _save_to_supabase(request_id: str, state: Dict[str, Any], results: Dict[str, Any]) -> None:
     try:
         db = get_supabase_client()
@@ -310,6 +374,10 @@ async def analyze(req: AnalyzeRequest) -> Dict[str, Any]:
     # 결과에 메트릭 요약 추가
     if metrics_report:
         merged["metrics_summary"] = metrics_report.get("summary", {})
+
+    token_usage = _collect_token_usage(result)
+    if token_usage:
+        merged["token_usage"] = token_usage
 
     return merged
 

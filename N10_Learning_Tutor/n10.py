@@ -6,7 +6,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 
 
-from core.llm import get_solar_chat
+from core.llm import get_solar_chat, invoke_with_usage
 
 from utils.json_parser import parse_json
 
@@ -42,14 +42,10 @@ def node10_learning_tutor(state: Dict[str, Any]) -> Dict[str, Any]:
 
 
 
+    llm_usage = None
     try:
-
-        response = llm.invoke(messages)
-
-        raw = response.content if isinstance(response.content, str) else str(response.content)
-
+        raw, llm_usage = invoke_with_usage(llm, messages)
     except Exception as exc:
-
         return {"n10_loss_review_report": _fallback(f"LLM 호출 실패: {exc}")}
 
 
@@ -62,7 +58,10 @@ def node10_learning_tutor(state: Dict[str, Any]) -> Dict[str, Any]:
 
 
 
-    return {"n10_loss_review_report": _normalize(parsed)}
+    normalized = _normalize(parsed)
+    if llm_usage:
+        normalized["llm_usage"] = llm_usage
+    return {"n10_loss_review_report": normalized}
 
 
 def _normalize(data: Dict[str, Any]) -> Dict[str, Any]:

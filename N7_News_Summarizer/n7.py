@@ -3,7 +3,7 @@ from typing import Any, Dict
 import json
 import os
 
-from core.llm import get_solar_chat, get_upstage_embeddings
+from core.llm import get_solar_chat, get_upstage_embeddings, invoke_with_usage
 from core.db import build_chroma_where, query_chroma_collection
 from .prompt import NODE7_SUMMARY_PROMPT
 from .search_tool import search_news_with_serper
@@ -200,9 +200,10 @@ def node7_news_summarizer(state: Dict[str, Any]) -> Dict[str, Any]:
         rag_context=rag_context,
     )
 
+    llm_usage = None
     try:
-        response = llm.invoke(prompt)
-        content = response.content.replace("```json", "").replace("```", "").strip()
+        content, llm_usage = invoke_with_usage(llm, prompt)
+        content = content.replace("```json", "").replace("```", "").strip()
         analysis_json = json.loads(content)
     except Exception as e:
         print(f"[ERROR] LLM analysis failed: {e}")
@@ -236,6 +237,8 @@ def node7_news_summarizer(state: Dict[str, Any]) -> Dict[str, Any]:
         "fact_check": analysis_json.get("fact_check"),
         "uncertainty_level": "low",
     }
+    if llm_usage:
+        output_data["llm_usage"] = llm_usage
 
     if metrics_enabled:
         report = evaluate_n7_metrics(

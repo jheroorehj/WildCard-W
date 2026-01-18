@@ -3,7 +3,7 @@ from typing import Any, Dict
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from core.llm import get_solar_chat
+from core.llm import get_solar_chat, invoke_with_usage
 from core.db import build_chroma_where, query_chroma_collection
 from langsmith.run_helpers import get_current_run_tree
 from utils.json_parser import parse_json
@@ -64,9 +64,9 @@ def node8_loss_analyst(state: Dict[str, Any]) -> Dict[str, Any]:
         HumanMessage(content=f"Build JSON using the following input.\n{payload}"),
     ]
 
+    llm_usage = None
     try:
-        response = llm.invoke(messages)
-        raw = response.content if isinstance(response.content, str) else str(response.content)
+        raw, llm_usage = invoke_with_usage(llm, messages)
     except Exception as exc:
         return _fallback(f"LLM call failed: {exc}")
 
@@ -79,6 +79,9 @@ def node8_loss_analyst(state: Dict[str, Any]) -> Dict[str, Any]:
 
     if not validate_node8(parsed):
         return _fallback("Output schema validation failed")
+
+    if llm_usage:
+        parsed["n8_llm_usage"] = llm_usage
 
     n8_eval = _evaluate_n8_metrics(parsed)
     n8_eval.update(_evaluate_n8_llm_metrics(parsed, state))

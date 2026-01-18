@@ -7,7 +7,7 @@ from curl_cffi import requests as curl_requests
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from core.llm import get_solar_chat
+from core.llm import get_solar_chat, invoke_with_usage
 from core.db import build_chroma_where, query_chroma_collection
 from langsmith import traceable
 from langsmith.run_helpers import get_current_run_tree
@@ -53,7 +53,7 @@ def resolve_ticker(stock_name: str) -> str:
         return raw
 
 
-def generate_llm_chart_analysis(payload: Dict[str, Any]) -> Optional[str]:
+def generate_llm_chart_analysis(payload: Dict[str, Any]) -> tuple[Optional[str], Optional[dict]]:
     """
     기술적 분석 결과를 LLM에 전달해 요약/해석을 생성합니다.
     """
@@ -74,11 +74,10 @@ def generate_llm_chart_analysis(payload: Dict[str, Any]) -> Optional[str]:
                 )
             ),
         ]
-        response = llm.invoke(messages)
-        text = response.content if isinstance(response.content, str) else str(response.content)
-        return text.strip()
+        text, usage = invoke_with_usage(llm, messages)
+        return text.strip(), usage
     except Exception:
-        return None
+        return None, None
 
 
 def _collect_rag_docs(result: Dict[str, Any]) -> list[str]:
@@ -149,7 +148,7 @@ def node6_stock_analyst(state: Dict[str, Any]) -> Dict[str, Any]:
         analysis_result["stock_analysis"]["resolved_from"] = stock_name
 
         rag_context = _build_rag_context(ticker, buy_date, sell_date)
-        llm_analysis = generate_llm_chart_analysis(
+        llm_analysis, llm_usage = generate_llm_chart_analysis(
             {
                 "ticker": ticker,
                 "period": analysis_result["stock_analysis"].get("period"),
@@ -164,6 +163,8 @@ def node6_stock_analyst(state: Dict[str, Any]) -> Dict[str, Any]:
         )
         if llm_analysis:
             analysis_result["stock_analysis"]["llm_chart_analysis"] = llm_analysis
+        if llm_usage:
+            analysis_result["stock_analysis"]["llm_usage"] = llm_usage
 
         try:
             llm = get_solar_chat()
