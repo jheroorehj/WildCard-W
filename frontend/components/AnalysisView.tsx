@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { AnalysisResult, Message, InvestmentFormData, RootCause, Evidence, N8LossCauseAnalysis, Quiz, N9LearningPatternAnalysis, ActionMission } from '../types';
 import { ICONS, CAUSE_CATEGORY_META, IMPACT_LEVEL_META } from '../constants';
 import { generateInvestmentQuiz } from '../services/solarService';
-import { RadarChart, InvestorPersonaCard, CognitiveBiasCard, DecisionProblemCard, ActionMissionCard } from './N9';
+import { RadarChart, InvestorPersonaCard, CognitiveBiasCard, DecisionProblemCard } from './N9';
+import { LearningFrameCard, ActionMissionCard as N10ActionMissionCard } from './N10';
 
 // === 하위 호환성: 구버전 데이터 변환 ===
 const isLegacyFormat = (lossCause: any): boolean => {
@@ -307,7 +308,7 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({
       <header className="px-5 py-4 flex items-center gap-3 shrink-0 bg-slate-950/80 backdrop-blur-md sticky top-0 z-20 border-b border-white/5">
         <button onClick={() => setView('home')} className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-xs shadow-lg shadow-blue-600/30">W</button>
         <div>
-          <h1 className="text-sm font-bold text-white leading-tight">{formData.stocks.length > 1 ? `${formData.stocks[0].name} 외 ${formData.stocks.length - 1}건` : formData.stocks[0]?.name} 분석 리포트</h1>
+          <h1 className="text-sm font-bold text-white leading-tight">{formData.stocks.length > 1 ? `${formData.stocks[0].name} 외 ${formData.stocks.length - 1}건` : formData.stocks[0]?.name} 복기 노트</h1>
           <div className="flex items-center gap-1.5 mt-0.5"><span className="w-1 h-1 bg-blue-500 rounded-full animate-pulse"></span><span className="text-[9px] text-blue-500 font-bold uppercase tracking-widest">실시간 인사이트 메모 중</span></div>
         </div>
       </header>
@@ -616,13 +617,27 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({
                       </div>
                     )}
 
-                    {/* 오늘의 투자 미션 (N10에서 생성) */}
+                    {/* 프레이밍 효과 (N10 신규) */}
+                    {tutor?.learning_frame && (
+                      <div className="mt-4 pt-4 border-t border-blue-500/10">
+                        <h5 className="text-[11px] text-blue-400 font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
+                          🔄 시각의 전환
+                        </h5>
+                        <LearningFrameCard frame={tutor.learning_frame} />
+                      </div>
+                    )}
+
+                    {/* 오늘의 투자 미션 (N10에서 생성, If-Then 플랜 포함) */}
                     {actionMissions.length > 0 && (
                       <div className="mt-4 pt-4 border-t border-blue-500/10">
                         <h5 className="text-[11px] text-blue-400 font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
                           🚀 오늘의 투자 미션
                         </h5>
-                        <ActionMissionCard missions={actionMissions} />
+                        <div className="space-y-3">
+                          {actionMissions.map((mission, idx) => (
+                            <N10ActionMissionCard key={mission.mission_id} mission={mission} index={idx} />
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>

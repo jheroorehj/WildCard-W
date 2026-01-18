@@ -159,6 +159,14 @@ export interface DecisionProblem {
   frequency: BiasFrequency;
 }
 
+// If-Then 플랜 (구현 의도 - Implementation Intentions)
+export interface IfThenPlan {
+  trigger_situation: string;
+  trigger_emotion: string;
+  then_action: string;
+  commitment_phrase: string;
+}
+
 export interface ActionMission {
   mission_id: string;
   priority: number;
@@ -168,6 +176,7 @@ export interface ActionMission {
   expected_outcome: string;
   difficulty: MissionDifficulty;
   estimated_impact: MissionImpact;
+  if_then_plan?: IfThenPlan;
 }
 
 export interface N9LearningPatternAnalysis {
@@ -177,6 +186,24 @@ export interface N9LearningPatternAnalysis {
   decision_problems: DecisionProblem[];
   // action_missions는 N10으로 이동됨
   uncertainty_level: UncertaintyLevel;
+}
+
+// 프레이밍 효과 (Framing Effect) - 손실/실수 재정의
+export interface LearningFrame {
+  loss_reframe: {
+    original: string;
+    reframed: string;
+    learning_value: string;
+  };
+  mistake_reframe: {
+    original: string;
+    reframed: string;
+    strength_focus: string;
+  };
+  progress_frame: {
+    message: string;
+    comparison_anchor: string;
+  };
 }
 
 // N10 학습 튜터 타입
@@ -191,6 +218,7 @@ export interface N10LearningTutor {
     advisor_message: string;
     recommended_questions: string[];
   };
+  learning_frame?: LearningFrame;
   action_missions: ActionMission[];
   uncertainty_level: UncertaintyLevel;
 }

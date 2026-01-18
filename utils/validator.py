@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Any, Dict
 
 
 def validate_node3(data: Dict[str, Any]) -> bool:
@@ -465,6 +465,7 @@ def validate_node9(data: Dict[str, Any]) -> bool:
 def validate_action_missions(missions: list) -> bool:
     """
     action_missions 검증 (N10에서 사용)
+    if_then_plan은 optional로 처리 (폴백 로직에서 추가됨)
     """
     allowed_difficulty = {"easy", "medium", "hard"}
     allowed_impact = {"low", "medium", "high"}
@@ -491,6 +492,70 @@ def validate_action_missions(missions: list) -> bool:
         if mission.get("difficulty") not in allowed_difficulty:
             return False
         if mission.get("estimated_impact") not in allowed_impact:
+            return False
+        # if_then_plan은 optional - 없어도 기본 미션은 유효
+        # 폴백 로직에서 추가됨
+
+    return True
+
+
+def validate_if_then_plan(plan: Any) -> bool:
+    """
+    If-Then 플랜 검증 (optional 필드)
+    유효하지 않으면 False 반환 → 폴백 사용
+    """
+    if plan is None:
+        return False
+    if not isinstance(plan, dict):
+        return False
+
+    required_keys = (
+        "trigger_situation",
+        "trigger_emotion",
+        "then_action",
+        "commitment_phrase",
+    )
+
+    for key in required_keys:
+        value = plan.get(key)
+        if not isinstance(value, str) or not value.strip():
+            return False
+
+    return True
+
+
+def validate_learning_frame(frame: Any) -> bool:
+    """
+    learning_frame 검증 (프레이밍 효과)
+    유효하지 않으면 False 반환 → 폴백 사용
+    """
+    if frame is None:
+        return False
+    if not isinstance(frame, dict):
+        return False
+
+    # loss_reframe 검증
+    loss_reframe = frame.get("loss_reframe")
+    if not isinstance(loss_reframe, dict):
+        return False
+    for key in ("original", "reframed", "learning_value"):
+        if not isinstance(loss_reframe.get(key), str):
+            return False
+
+    # mistake_reframe 검증
+    mistake_reframe = frame.get("mistake_reframe")
+    if not isinstance(mistake_reframe, dict):
+        return False
+    for key in ("original", "reframed", "strength_focus"):
+        if not isinstance(mistake_reframe.get(key), str):
+            return False
+
+    # progress_frame 검증
+    progress_frame = frame.get("progress_frame")
+    if not isinstance(progress_frame, dict):
+        return False
+    for key in ("message", "comparison_anchor"):
+        if not isinstance(progress_frame.get(key), str):
             return False
 
     return True
