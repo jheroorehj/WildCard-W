@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import Any, Dict
+import json
+import time
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -28,7 +30,7 @@ def _build_rag_context(ticker: str, buy_date: str, sell_date: str | None) -> str
     where = build_chroma_where(ticker=ticker, start_date=buy_date, end_date=sell_date)
     query_text = f"{ticker} {buy_date} {sell_date or ''} loss cause market"
     sections = []
-    for name in ("external_news", "stock_metrics", "internal_facts"):
+    for name in ("external_news", "indicator_analysis", "internal_facts"):
         try:
             result = query_chroma_collection(name, query_text, top_k=3, where=where)
         except Exception:
@@ -48,24 +50,42 @@ def node8_loss_analyst(state: Dict[str, Any]) -> Dict[str, Any]:
     buy_date = state.get("layer2_buy_date")
     sell_date = state.get("layer2_sell_date")
     rag_context = _build_rag_context(ticker or "", buy_date or "", sell_date)
+    n6_analysis = state.get("n6_stock_analysis")
+    if isinstance(n6_analysis, dict):
+        stock_analysis = n6_analysis.get("stock_analysis")
+        if isinstance(stock_analysis, dict):
+            pruned_stock_analysis = dict(stock_analysis)
+            pruned_stock_analysis.pop("llm_chart_analysis", None)
+            n6_analysis = dict(n6_analysis)
+            n6_analysis["stock_analysis"] = pruned_stock_analysis
+
     payload = {
         "ticker": ticker,
         "buy_date": buy_date,
         "sell_date": sell_date,
         "user_decision_basis": state.get("layer3_decision_basis"),
-        "n6_stock_analysis": state.get("n6_stock_analysis"),
+        "n6_stock_analysis": n6_analysis,
         "n7_news_analysis": state.get("n7_news_analysis"),
         "rag_context": rag_context,
     }
+    try:
+        payload_text = json.dumps(payload, ensure_ascii=True, default=str)
+        print(f"[DEBUG] N8 payload chars: {len(payload_text)}")
+    except Exception:
+        print("[DEBUG] N8 payload chars: unavailable")
 
     llm = get_solar_chat()
+    llm_with_config = llm.bind(max_tokens=2048)
     messages = [
         SystemMessage(content=NODE8_LOSS_ANALYST_PROMPT),
         HumanMessage(content=f"Build JSON using the following input.\n{payload}"),
     ]
 
     try:
-        response = llm.invoke(messages)
+        llm_start = time.perf_counter()
+        response = llm_with_config.invoke(messages)
+        llm_elapsed = time.perf_counter() - llm_start
+        print(f"[TIMING] N8 LLM invoke took {llm_elapsed:.2f}s")
         raw = response.content if isinstance(response.content, str) else str(response.content)
     except Exception as exc:
         return _fallback(f"LLM call failed: {exc}")
@@ -209,7 +229,10 @@ def _evaluate_n8_llm_metrics(
 
     try:
         llm = get_solar_chat()
+        eval_start = time.perf_counter()
         score = judge_consistency_sync(llm, news_text, ai_text)
+        eval_elapsed = time.perf_counter() - eval_start
+        print(f"[TIMING] N8 LLM judge took {eval_elapsed:.2f}s")
     except Exception:
         return {"llm_fact_consistency_score": None}
 

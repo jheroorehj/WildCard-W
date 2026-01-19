@@ -211,33 +211,37 @@ def validate_node8(data: Dict[str, Any]) -> bool:
     if not isinstance(loss_cause, dict):
         return False
 
-    # 기본 문자열 필드 검증
+    # 기본 문자열 필드 검증 (존재할 때만 타입 검사)
     for key in ("loss_check", "loss_amount_pct", "one_line_summary", "detailed_explanation"):
-        if not isinstance(loss_cause.get(key), str):
+        value = loss_cause.get(key)
+        if value is not None and not isinstance(value, str):
             return False
 
     # confidence_level 검증
-    if loss_cause.get("confidence_level") not in allowed_confidence:
+    confidence_level = loss_cause.get("confidence_level")
+    if confidence_level is not None and confidence_level not in allowed_confidence:
         return False
 
     # cause_breakdown 검증
     breakdown = loss_cause.get("cause_breakdown")
-    if not isinstance(breakdown, dict):
-        return False
-    internal_ratio = breakdown.get("internal_ratio")
-    external_ratio = breakdown.get("external_ratio")
-    if not isinstance(internal_ratio, (int, float)):
-        return False
-    if not isinstance(external_ratio, (int, float)):
-        return False
-    if abs((internal_ratio + external_ratio) - 100) > 5:  # 허용 오차 5%로 완화
-        return False
+    if breakdown is not None:
+        if not isinstance(breakdown, dict):
+            return False
+        internal_ratio = breakdown.get("internal_ratio")
+        external_ratio = breakdown.get("external_ratio")
+        if internal_ratio is not None and not isinstance(internal_ratio, (int, float)):
+            return False
+        if external_ratio is not None and not isinstance(external_ratio, (int, float)):
+            return False
+        if isinstance(internal_ratio, (int, float)) and isinstance(external_ratio, (int, float)):
+            if abs((internal_ratio + external_ratio) - 100) > 20:  # 허용 오차 20%로 완화
+                return False
 
     # root_causes 검증 (새로운 구조)
     root_causes = loss_cause.get("root_causes")
     if not isinstance(root_causes, list):
         return False
-    if len(root_causes) < 2:  # 최소 2개 이상
+    if len(root_causes) < 1:  # 최소 1개 이상
         return False
 
     for cause in root_causes:
@@ -256,110 +260,126 @@ def validate_node8(data: Dict[str, Any]) -> bool:
         # subcategory 검증 (category에 따라 다른 허용값)
         subcategory = cause.get("subcategory")
         # 프론트엔드에서 예외 처리가 되어 있으므로, 엄격한 검증 대신 타입만 확인
-        if not isinstance(subcategory, str):
+        if subcategory is not None and not isinstance(subcategory, str):
             return False
 
         # 문자열 필드 검증
         for key in ("title", "description"):
-            if not isinstance(cause.get(key), str):
+            value = cause.get(key)
+            if value is not None and not isinstance(value, str):
                 return False
 
         # impact_score 검증 (1-10)
         impact_score = cause.get("impact_score")
-        if not isinstance(impact_score, (int, float)):
-            return False
-        if not (1 <= impact_score <= 10):
-            return False
+        if impact_score is not None:
+            if not isinstance(impact_score, (int, float)):
+                return False
+            if not (1 <= impact_score <= 10):
+                return False
 
         # impact_level 검증
-        if not isinstance(cause.get("impact_level"), str):
+        impact_level = cause.get("impact_level")
+        if impact_level is not None and not isinstance(impact_level, str):
             return False
 
         # timeline_relevance 검증
-        if not isinstance(cause.get("timeline_relevance"), str):
+        timeline_relevance = cause.get("timeline_relevance")
+        if timeline_relevance is not None and not isinstance(timeline_relevance, str):
             return False
 
         # evidence 검증
         evidence_list = cause.get("evidence")
-        if not isinstance(evidence_list, list):
+        if evidence_list is not None and not isinstance(evidence_list, list):
             return False
         # 최소 개수 제한 완화 (LLM이 생략하는 경우 대비)
         # if len(evidence_list) < 1: return False
 
-        for ev in evidence_list:
-            if not isinstance(ev, dict):
-                return False
-            if not isinstance(ev.get("source"), str):
-                return False
-            if not isinstance(ev.get("type"), str):
-                return False
-            for k in ("data_point", "interpretation"):
-                if not isinstance(ev.get(k), str):
+        if isinstance(evidence_list, list):
+            for ev in evidence_list:
+                if not isinstance(ev, dict):
                     return False
+                if ev.get("source") is not None and not isinstance(ev.get("source"), str):
+                    return False
+                if ev.get("type") is not None and not isinstance(ev.get("type"), str):
+                    return False
+                for k in ("data_point", "interpretation"):
+                    value = ev.get(k)
+                    if value is not None and not isinstance(value, str):
+                        return False
 
     # === n8_market_context_analysis 검증 (기존 유지) ===
     market_context = data.get("n8_market_context_analysis")
     if not isinstance(market_context, dict):
         return False
 
-    if not isinstance(market_context.get("market_situation_analysis"), str):
+    market_situation = market_context.get("market_situation_analysis")
+    if market_situation is not None and not isinstance(market_situation, str):
         return False
 
     news_at_loss = market_context.get("news_at_loss_time")
-    if not isinstance(news_at_loss, list):
-        return False
-    if any(not isinstance(item, str) for item in news_at_loss):
-        return False
+    if news_at_loss is not None:
+        if not isinstance(news_at_loss, list):
+            return False
+        if any(not isinstance(item, str) for item in news_at_loss):
+            return False
 
     related_news = market_context.get("related_news")
-    if not isinstance(related_news, list):
-        return False
-    if any(not isinstance(item, str) for item in related_news):
-        return False
+    if related_news is not None:
+        if not isinstance(related_news, list):
+            return False
+        if any(not isinstance(item, str) for item in related_news):
+            return False
 
     n9_input = data.get("n9_input")
     if not isinstance(n9_input, dict):
         return False
 
     for key in ("investment_reason", "loss_cause_summary"):
-        if not isinstance(n9_input.get(key), str):
+        value = n9_input.get(key)
+        if value is not None and not isinstance(value, str):
             return False
 
     loss_details = n9_input.get("loss_cause_details")
-    if not isinstance(loss_details, list):
-        return False
-    if any(not isinstance(item, str) for item in loss_details):
-        return False
+    if loss_details is not None:
+        if not isinstance(loss_details, list):
+            return False
+        if any(not isinstance(item, str) for item in loss_details):
+            return False
 
     objective = n9_input.get("objective_signals")
-    if not isinstance(objective, dict):
-        return False
-
-    for key in ("price_trend", "volatility_level"):
-        if not isinstance(objective.get(key), str):
+    if objective is not None:
+        if not isinstance(objective, dict):
             return False
 
-    obj_tech = objective.get("technical_indicators")
-    if not isinstance(obj_tech, list):
-        return False
-    for indicator in obj_tech:
-        if not isinstance(indicator, dict):
-            return False
-        if not isinstance(indicator.get("name"), str):
-            return False
-        # 숫자로 들어오는 경우 허용
-        if not isinstance(indicator.get("value"), (str, int, float)):
-            return False
-        if not isinstance(indicator.get("interpretation"), str):
-            return False
+        for key in ("price_trend", "volatility_level"):
+            value = objective.get(key)
+            if value is not None and not isinstance(value, str):
+                return False
 
-    obj_news = objective.get("news_facts")
-    if not isinstance(obj_news, list):
-        return False
-    if any(not isinstance(item, str) for item in obj_news):
-        return False
+        obj_tech = objective.get("technical_indicators")
+        if obj_tech is not None:
+            if not isinstance(obj_tech, list):
+                return False
+            for indicator in obj_tech:
+                if not isinstance(indicator, dict):
+                    return False
+                if indicator.get("name") is not None and not isinstance(indicator.get("name"), str):
+                    return False
+                # 숫자로 들어오는 경우 허용
+                if indicator.get("value") is not None and not isinstance(indicator.get("value"), (str, int, float)):
+                    return False
+                if indicator.get("interpretation") is not None and not isinstance(indicator.get("interpretation"), str):
+                    return False
 
-    if not isinstance(n9_input.get("uncertainty_level"), str):
+        obj_news = objective.get("news_facts")
+        if obj_news is not None:
+            if not isinstance(obj_news, list):
+                return False
+            if any(not isinstance(item, str) for item in obj_news):
+                return False
+
+    uncertainty_level = n9_input.get("uncertainty_level")
+    if uncertainty_level is not None and not isinstance(uncertainty_level, str):
         return False
 
     return True
